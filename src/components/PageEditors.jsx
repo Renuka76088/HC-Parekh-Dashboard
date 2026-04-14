@@ -910,7 +910,7 @@ export const PageContentManager = () => (
       <div className="relative z-10">
         <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">Website Content Hub</h2>
         <p className="text-lg text-slate-400 max-w-2xl font-medium">
-          Select a section below to manage the live content of the HC website.
+          Select a section below to manage the live content of the HC Parekh website.
         </p>
       </div>
     </div>
