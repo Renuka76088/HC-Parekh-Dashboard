@@ -15,7 +15,8 @@ import {
   LogOut,
   User,
   LayoutDashboard,
-  ChevronLeft
+  ChevronLeft,
+  Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -23,7 +24,7 @@ import {
   ContactLocationEditor, 
   ServicesChargesEditor, 
   CorporateEditor, 
-  TeamHiringEditor,
+  HiringEditor,
   PageContentManager
 } from './components/PageEditors';
 
@@ -71,7 +72,7 @@ function App() {
     { label: 'Contact Us', icon: MapPin, to: '/contact' },
     { label: 'Services', icon: Briefcase, to: '/services' },
     { label: 'Corporate', icon: Layers, to: '/corporate' },
-    { label: 'Team & HR', icon: Users, to: '/team' },
+    { label: 'Hiring', icon: Plus, to: '/hiring' },
   ];
 
   return (
@@ -194,7 +195,7 @@ function App() {
               <Route path="/contact" element={<ContactLocationEditor />} />
               <Route path="/services" element={<ServicesChargesEditor />} />
               <Route path="/corporate" element={<CorporateEditor />} />
-              <Route path="/team" element={<TeamHiringEditor />} />
+              <Route path="/hiring" element={<HiringEditor />} />
             </Routes>
           </div>
         </div>
