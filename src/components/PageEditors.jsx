@@ -291,7 +291,7 @@ export const HomeAboutEditor = () => {
             <p className="font-bold text-slate-800">{item.title}</p>
             <p className="text-sm text-slate-500 mt-0.5">{item.description}</p>
           </div>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
             <button type="button" onClick={() => openModal(listKey, i)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Edit size={14} /></button>
             <button type="button" onClick={() => deleteItem(listKey, i)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={14} /></button>
           </div>
@@ -541,7 +541,7 @@ export const ServicesChargesEditor = () => {
               </div>
               <button 
                 onClick={() => handleDelete(svc._id)} 
-                className="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500 rounded-lg transition-all shrink-0 opacity-0 group-hover:opacity-100"
+                className="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500 rounded-lg transition-all shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                 title="Delete Service"
               >
                 <Trash2 size={16} />
@@ -695,7 +695,7 @@ export const CorporateEditor = () => {
                     <p className="text-[10px] text-rose-600 font-bold mt-1">{toArr(item.points).length} key points</p>
                   )}
                 </div>
-                <div className="flex gap-1 ml-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <div className="flex gap-1 ml-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                   <button onClick={() => openModal(meta.type, item, true)}
                     className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
                     <Edit size={14} />
