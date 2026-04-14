@@ -489,7 +489,7 @@ export const ContactLocationEditor = () => {
 export const ServicesChargesEditor = () => {
   const [loading, setLoading] = useState(true);
   const [services, setServices] = useState([]);
-  const [modal, setModal] = useState({ open: false, data: {}, isEdit: false });
+  const [input, setInput] = useState('');
 
   useEffect(() => { fetchServices(); }, []);
 
@@ -499,19 +499,19 @@ export const ServicesChargesEditor = () => {
     finally { setLoading(false); }
   };
 
-  const handleSave = async (formData) => {
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
     try {
-      // Normalize points field
-      const processed = { ...formData, points: toArr(formData.points) };
-      if (modal.isEdit && modal.data._id) {
-        await contentApi.updateService(modal.data._id, processed);
-        alert('Service updated!');
-      } else {
-        await contentApi.addService(processed);
-        alert('Service added!');
-      }
+      // Send both title and name/description to prevent 400 errors from older remote backend
+      await contentApi.addService({ 
+        title: input.trim(),
+        name: input.trim(),
+        description: 'Added via rapid list'
+      });
+      setInput('');
       fetchServices();
-    } catch { alert('Failed to save service'); }
+    } catch { alert('Failed to add service'); }
   };
 
   const handleDelete = async (id) => {
@@ -520,68 +520,48 @@ export const ServicesChargesEditor = () => {
     catch { alert('Delete failed'); }
   };
 
-  const serviceFields = [
-    { name: 'name',        label: 'Service Name',   placeholder: 'e.g. Industrial Consultant', required: true },
-    { name: 'description', label: 'Description',    type: 'textarea', placeholder: 'Enter service description...', required: true },
-    { name: 'points',      label: 'Key Points',     type: 'stringlist', placeholder: 'Add a key point...' },
-    { name: 'price',       label: 'Pricing Info',   placeholder: 'e.g. On Contract / Fixed Fee' },
-  ];
-
   if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Services...</div>;
 
   return (
     <div className="max-w-4xl">
-      <ItemModal
-        isOpen={modal.open}
-        onClose={() => setModal({ open: false, data: {}, isEdit: false })}
-        title={modal.isEdit ? 'Edit Service' : 'Add New Professional Service'}
-        fields={serviceFields}
-        initialData={modal.data}
-        onSave={handleSave}
-      />
-
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Professional Services & Charges</h3>
-          <p className="text-slate-500 font-medium">Edit service details, key points, and pricing</p>
+          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Professional Services</h3>
+          <p className="text-slate-500 font-medium">Add multiple service titles quickly</p>
         </div>
-        <button onClick={() => setModal({ open: true, data: {}, isEdit: false })}
-          className="flex items-center space-x-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all">
-          <Plus size={18} /><span>Add New Service</span>
-        </button>
       </div>
 
-      <SectionEditor title="Current Services">
-        <div className="space-y-4">
+      <SectionEditor title="Service Titles">
+        <div className="space-y-3">
           {services.map((svc, i) => (
-            <div key={svc._id || i} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex items-start space-x-4 group hover:border-rose-200 transition-all">
-              <div className="p-3 bg-white rounded-xl shadow-sm text-rose-600 shrink-0"><Briefcase size={20} /></div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-black text-slate-800 text-lg mb-1">{svc.name}</h4>
-                <p className="text-sm text-slate-500 font-medium">{svc.description}</p>
-                {svc.price && <p className="text-emerald-600 font-bold mt-2 text-sm">Pricing: {svc.price}</p>}
-                {toArr(svc.points).length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {toArr(svc.points).map((pt, j) => (
-                      <span key={j} className="px-2 py-1 bg-rose-50 text-rose-600 text-xs font-bold rounded-lg">• {pt}</span>
-                    ))}
-                  </div>
-                )}
+            <div key={svc._id || i} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl group hover:border-rose-200 transition-all">
+              <span className="text-xs font-black text-slate-400 w-5 text-right shrink-0">{i + 1}.</span>
+              <div className="flex-1 text-sm font-bold text-slate-800">
+                {svc.title || svc.name}
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <button
-                  onClick={() => setModal({ open: true, data: { ...svc, points: toArr(svc.points) }, isEdit: true })}
-                  className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
-                  <Edit size={16} />
-                </button>
-                <button onClick={() => handleDelete(svc._id)}
-                  className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Delete">
-                  <Trash2 size={16} />
-                </button>
-              </div>
+              <button 
+                onClick={() => handleDelete(svc._id)} 
+                className="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500 rounded-lg transition-all shrink-0 opacity-0 group-hover:opacity-100"
+                title="Delete Service"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           ))}
-          {services.length === 0 && <p className="text-center text-slate-400 py-8 italic">No services listed yet.</p>}
+
+          {services.length === 0 && <p className="text-center text-slate-400 py-4 italic text-sm">No services listed yet.</p>}
+
+          <form onSubmit={handleAdd} className="flex gap-2 mt-6">
+            <input
+              className="flex-1 px-4 py-3 bg-white border-2 border-dashed border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-rose-300 focus:bg-rose-50/30 transition-all"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a service title and press Add..."
+            />
+            <button type="submit" className="px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-black hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-md shrink-0">
+              <Plus size={16} /> Add New
+            </button>
+          </form>
         </div>
       </SectionEditor>
     </div>

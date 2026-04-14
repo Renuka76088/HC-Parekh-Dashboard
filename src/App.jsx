@@ -27,6 +27,7 @@ import {
   HiringEditor,
   PageContentManager
 } from './components/PageEditors';
+import logo from '../public/logo.png'; 
 
 // No placeholder components needed anymore
 
@@ -106,8 +107,8 @@ function App() {
           </button>
 
           <div className={`p-6 flex items-center transition-all duration-300 ${isSidebarOpen ? 'space-x-3' : 'justify-center px-0'}`}>
-            <div className={`bg-rose-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-rose-200 transition-all duration-300 ${isSidebarOpen ? 'w-10 h-10' : 'w-12 h-12'}`}>
-              <span className="font-bold text-xl uppercase">HP</span>
+            <div className={` rounded-xl flex items-center justify-center text-white shadow-lg  transition-all duration-300 ${isSidebarOpen ? 'w-10 h-10' : 'w-12 h-12'}`}>
+              <span className="font-bold text-xl uppercase"><img src={logo} alt="" /></span>
             </div>
             {isSidebarOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
