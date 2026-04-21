@@ -503,15 +503,38 @@ export const ServicesChargesEditor = () => {
     e.preventDefault();
     if (!input.trim()) return;
     try {
-      // Send both title and name/description to prevent 400 errors from older remote backend
       await contentApi.addService({ 
         title: input.trim(),
-        name: input.trim(),
-        description: 'Added via rapid list'
+        description: 'Professional Service'
       });
       setInput('');
       fetchServices();
     } catch { alert('Failed to add service'); }
+  };
+
+  const [modal, setModal] = useState({ open: false, data: {}, isEdit: false });
+
+  const handleEdit = (svc) => {
+    setModal({ 
+      open: true, 
+      data: {
+        ...svc,
+        points: toArr(svc.points)
+      }, 
+      isEdit: true 
+    });
+  };
+
+  const handleSaveEdit = async (formData) => {
+    const processed = {
+      ...formData,
+      points: toArr(formData.points)
+    };
+    try {
+      await contentApi.updateService(modal.data._id, processed);
+      alert('Service updated!');
+      fetchServices();
+    } catch { alert('Update failed'); }
   };
 
   const handleDelete = async (id) => {
@@ -533,19 +556,40 @@ export const ServicesChargesEditor = () => {
 
       <SectionEditor title="Service Titles">
         <div className="space-y-3">
+          <ItemModal
+            isOpen={modal.open}
+            onClose={() => setModal({ open: false, data: {}, isEdit: false })}
+            fields={[
+              { name: 'title', label: 'Service Title', required: true },
+              { name: 'description', label: 'Brief Description', type: 'textarea' },
+              { name: 'points', label: 'Service Points (Details)', type: 'stringlist' }
+            ]}
+            initialData={modal.data}
+            onSave={handleSaveEdit}
+          />
+
           {services.map((svc, i) => (
             <div key={svc._id || i} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl group hover:border-rose-200 transition-all">
               <span className="text-xs font-black text-slate-400 w-5 text-right shrink-0">{i + 1}.</span>
               <div className="flex-1 text-sm font-bold text-slate-800">
                 {svc.title || svc.name}
               </div>
-              <button 
-                onClick={() => handleDelete(svc._id)} 
-                className="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500 rounded-lg transition-all shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                title="Delete Service"
-              >
-                <Trash2 size={16} />
-              </button>
+              <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => handleEdit(svc)} 
+                  className="p-1.5 text-blue-400 hover:bg-blue-50 rounded-lg transition-all"
+                  title="Edit Service"
+                >
+                  <Edit size={16} />
+                </button>
+                <button 
+                  onClick={() => handleDelete(svc._id)} 
+                  className="p-1.5 text-rose-400 hover:bg-rose-50 rounded-lg transition-all shrink-0"
+                  title="Delete Service"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           ))}
 
@@ -629,8 +673,11 @@ export const CorporateEditor = () => {
     if (type === 'Notice') return [
       { name: 'title',            label: 'Project Title',              placeholder: 'e.g. Infrastructure Development Plan', required: true },
       { name: 'description',      label: 'Brief Description',          type: 'textarea', placeholder: 'Summary of the notice...', required: true },
+      { name: 'projectLocationsHeading', label: 'Location Heading Label', placeholder: 'e.g. Project Locations' },
       { name: 'projectLocations', label: 'Project Locations',          type: 'stringlist', placeholder: 'Add location (e.g. Surat)...' },
+      { name: 'targetSectorsHeading',    label: 'Sector Heading Label',   placeholder: 'e.g. Target Sectors' },
       { name: 'targetSectors',    label: 'Target Sectors',             type: 'stringlist', placeholder: 'Add sector...' },
+      { name: 'ourRequirementsHeading',  label: 'Requirements Heading Label', placeholder: 'e.g. Our Requirements' },
       { name: 'ourRequirements',  label: 'Our Requirements',           type: 'stringlist', placeholder: 'Add requirement...' },
     ];
     return [
@@ -737,6 +784,8 @@ export const HiringEditor = () => {
       targetSectors:    toArr(formData.targetSectors),
       requiredPlatforms: toArr(formData.requiredPlatforms),
       submissionNotes:  toArr(formData.submissionNotes),
+      emails:           toArr(formData.emails),
+      adminNotes:       toArr(formData.adminNotes),
     };
     try {
       if (modal.isEdit && modal.data._id) {
@@ -763,6 +812,8 @@ export const HiringEditor = () => {
         targetSectors:    toArr(data.targetSectors),
         requiredPlatforms: toArr(data.requiredPlatforms),
         submissionNotes:  toArr(data.submissionNotes),
+        emails:           toArr(data.emails),
+        adminNotes:       toArr(data.adminNotes),
       }
     });
   };
@@ -771,6 +822,10 @@ export const HiringEditor = () => {
     {
       name: 'title', label: 'Job Title',
       placeholder: 'e.g. Social Media Influencer', required: true,
+    },
+    {
+      name: 'campaignHeading', label: 'Campaign Label (Text on Badge)',
+      placeholder: 'e.g. CAMPAIGN',
     },
     {
       name: 'campaign', label: 'Campaign Name',
@@ -785,16 +840,48 @@ export const HiringEditor = () => {
       placeholder: 'e.g. Experienced Social Media Influencers irrespective of locations are required for our long-term Online Business Advertisements...',
     },
     {
+      name: 'targetSectorsHeading', label: 'Target Sectors Label',
+      placeholder: 'e.g. Target Sectors',
+    },
+    {
       name: 'targetSectors', label: 'Target Sectors', type: 'stringlist',
       placeholder: 'e.g. Textile & Garments',
+    },
+    {
+      name: 'requiredPlatformsHeading', label: 'Required Platforms Label',
+      placeholder: 'e.g. Required Platforms',
     },
     {
       name: 'requiredPlatforms', label: 'Required Platforms', type: 'stringlist',
       placeholder: 'e.g. LinkedIn, Instagram, YouTube...',
     },
     {
+      name: 'applyNowTitle', label: 'Apply Now Heading',
+      placeholder: 'e.g. Apply Now',
+    },
+    {
+      name: 'quotationInstruction', label: 'Quotation Instruction', type: 'textarea',
+      placeholder: 'e.g. Submit your Quotation in PDF format including payment terms.',
+    },
+    {
+      name: 'emailHeading', label: 'Email Section Label',
+      placeholder: 'e.g. Email Quotation To:',
+    },
+    {
+      name: 'emails', label: 'Email Quotation To (Multiple)', type: 'stringlist',
+      placeholder: 'Add email address...',
+    },
+    {
+      name: 'adminNoteHeading', label: 'Note Section Label',
+      placeholder: 'e.g. Note',
+    },
+    {
+      name: 'adminNotes', label: 'Admin Notes (Point-wise)', type: 'stringlist',
+      placeholder: 'Add a note point...',
+    },
+    {
       name: 'submissionNotes', label: 'Submission Notes', type: 'stringlist',
-      placeholder: 'e.g. Quotation in PDF format...',
+      placeholder: 'e.g. Note about deadlines...',
     },
   ];
 
@@ -838,7 +925,7 @@ export const HiringEditor = () => {
                     )}
                     {job.campaign && (
                       <span className="px-2.5 py-0.5 bg-slate-200 text-slate-600 text-[9px] font-black uppercase tracking-widest rounded-full">
-                        {job.campaign}
+                        {(job.campaignHeading || 'CAMPAIGN')}: {job.campaign}
                       </span>
                     )}
                   </div>
@@ -854,10 +941,26 @@ export const HiringEditor = () => {
                 </div>
               </div>
 
+              {/* Submission & Contact Info */}
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {toArr(job.emails).length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Quotation Emails</p>
+                    <p className="text-xs text-rose-600 font-bold">{toArr(job.emails).join(', ')}</p>
+                  </div>
+                )}
+                {toArr(job.adminNotes).length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Admin Notes</p>
+                    <p className="text-xs text-slate-500 font-medium italic truncate">{toArr(job.adminNotes).length} points added</p>
+                  </div>
+                )}
+              </div>
+
               {/* Target Sectors */}
               {toArr(job.targetSectors).length > 0 && (
                 <div className="mt-4">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Target Sectors</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{job.targetSectorsHeading || 'Target Sectors'}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {toArr(job.targetSectors).map((s, i) => (
                       <span key={i} className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg">
@@ -871,7 +974,7 @@ export const HiringEditor = () => {
               {/* Required Platforms */}
               {toArr(job.requiredPlatforms).length > 0 && (
                 <div className="mt-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Required Platforms</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{job.requiredPlatformsHeading || 'Required Platforms'}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {toArr(job.requiredPlatforms).map((p, i) => (
                       <span key={i} className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg">{p}</span>
