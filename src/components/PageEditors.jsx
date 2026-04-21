@@ -783,9 +783,7 @@ export const HiringEditor = () => {
       ...formData,
       targetSectors:    toArr(formData.targetSectors),
       requiredPlatforms: toArr(formData.requiredPlatforms),
-      submissionNotes:  toArr(formData.submissionNotes),
       emails:           toArr(formData.emails),
-      adminNotes:       toArr(formData.adminNotes),
     };
     try {
       if (modal.isEdit && modal.data._id) {
@@ -811,9 +809,7 @@ export const HiringEditor = () => {
         ...data,
         targetSectors:    toArr(data.targetSectors),
         requiredPlatforms: toArr(data.requiredPlatforms),
-        submissionNotes:  toArr(data.submissionNotes),
         emails:           toArr(data.emails),
-        adminNotes:       toArr(data.adminNotes),
       }
     });
   };
@@ -870,18 +866,6 @@ export const HiringEditor = () => {
     {
       name: 'emails', label: 'Email Quotation To (Multiple)', type: 'stringlist',
       placeholder: 'Add email address...',
-    },
-    {
-      name: 'adminNoteHeading', label: 'Note Section Label',
-      placeholder: 'e.g. Note',
-    },
-    {
-      name: 'adminNotes', label: 'Admin Notes (Point-wise)', type: 'stringlist',
-      placeholder: 'Add a note point...',
-    },
-    {
-      name: 'submissionNotes', label: 'Submission Notes', type: 'stringlist',
-      placeholder: 'e.g. Note about deadlines...',
     },
   ];
 
@@ -949,12 +933,6 @@ export const HiringEditor = () => {
                     <p className="text-xs text-rose-600 font-bold">{toArr(job.emails).join(', ')}</p>
                   </div>
                 )}
-                {toArr(job.adminNotes).length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Admin Notes</p>
-                    <p className="text-xs text-slate-500 font-medium italic truncate">{toArr(job.adminNotes).length} points added</p>
-                  </div>
-                )}
               </div>
 
               {/* Target Sectors */}
@@ -980,18 +958,6 @@ export const HiringEditor = () => {
                       <span key={i} className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg">{p}</span>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Submission Notes */}
-              {toArr(job.submissionNotes).length > 0 && (
-                <div className="mt-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Submission Notes</p>
-                  <ul className="space-y-0.5">
-                    {toArr(job.submissionNotes).map((n, i) => (
-                      <li key={i} className="text-xs text-slate-500 font-medium">• {n}</li>
-                    ))}
-                  </ul>
                 </div>
               )}
             </div>
