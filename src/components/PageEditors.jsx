@@ -1166,18 +1166,20 @@ export const WebMarketEditor = () => {
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [editEnquiry, setEditEnquiry] = useState(null);
 
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
   const fetchSettings = async () => {
     setSettingsLoading(true);
     try {
       const res = await webMarketApi.getSettings();
-      console.log('Fetched settings:', res.data);
+      console.log('WebMarket Settings Received:', res.data);
       const data = res.data || {};
       setSettings({
         endUsers: data.endUsers || [],
         serviceProviders: data.serviceProviders || []
       });
     } catch (err) {
-      console.error('Settings fetch error:', err);
+      console.error('CRITICAL: Settings fetch failed', err);
     } finally {
       setSettingsLoading(false);
     }
@@ -1189,9 +1191,10 @@ export const WebMarketEditor = () => {
       const res = type === 'end-user' 
         ? await webMarketApi.getEndUserEnquiries() 
         : await webMarketApi.getServiceProviderEnquiries();
+      console.log(`WebMarket ${type} Enquiries Received:`, res.data);
       setEnquiries(res.data || []);
     } catch (err) {
-      console.error('Enquiry fetch error:', err);
+      console.error(`CRITICAL: ${type} enquiry fetch failed`, err);
     } finally {
       setLoading(false);
     }
@@ -1206,18 +1209,20 @@ export const WebMarketEditor = () => {
 
   const handleAddOfficial = async () => {
     if (!newOfficial.authorizedOfficial || !newOfficial.assessCode) {
-      alert('Please fill both fields.');
+      alert('Fill all fields first.');
       return;
     }
     try {
       const updatedList = [...(settings[categoryKey] || []), newOfficial];
       const updatedSettings = { ...settings, [categoryKey]: updatedList };
+      console.log('Updating settings with:', updatedSettings);
       await webMarketApi.updateSettings(updatedSettings);
       setNewOfficial({ authorizedOfficial: '', assessCode: '' });
       await fetchSettings();
-      alert('Official added!');
+      alert('Official registered successfully!');
     } catch (err) {
-      alert('Failed to add official');
+      console.error('Update failed:', err);
+      alert('Update failed. Check console.');
     }
   };
 
@@ -1235,19 +1240,19 @@ export const WebMarketEditor = () => {
       await fetchSettings();
       alert('Official updated!');
     } catch (err) {
-      alert('Failed to update official');
+      alert('Update failed');
     }
   };
 
   const handleDeleteOfficial = async (index) => {
-    if (!window.confirm('Remove this authorized person?')) return;
+    if (!window.confirm('Remove this official? This will prevent them from submitting new forms.')) return;
     try {
       const updatedList = settings[categoryKey].filter((_, i) => i !== index);
       const updatedSettings = { ...settings, [categoryKey]: updatedList };
       await webMarketApi.updateSettings(updatedSettings);
       await fetchSettings();
     } catch (err) {
-      alert('Failed to delete official');
+      alert('Delete failed');
     }
   };
 
@@ -1258,7 +1263,7 @@ export const WebMarketEditor = () => {
       } else {
         await webMarketApi.updateServiceProviderEnquiry(editEnquiry._id, editEnquiry);
       }
-      alert('Updated successfully!');
+      alert('Record updated!');
       setEditEnquiry(null);
       fetchEnquiries(activeTab === 'end-user-enquiry' ? 'end-user' : 'service-provider');
     } catch (err) {
@@ -1267,7 +1272,7 @@ export const WebMarketEditor = () => {
   };
 
   const handleDeleteEnquiry = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this submission?')) return;
+    if (!window.confirm('Permanently delete this submission?')) return;
     try {
       if (activeTab === 'end-user-enquiry') await webMarketApi.deleteEndUserEnquiry(id);
       else await webMarketApi.deleteServiceProviderEnquiry(id);
@@ -1280,86 +1285,114 @@ export const WebMarketEditor = () => {
   return (
     <div className="space-y-6 max-w-full overflow-hidden">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">HCP Web Market</h2>
-          <p className="text-slate-500 font-medium text-xs md:text-sm mt-1">Manage officials and enquiries in one place</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">HCP Web Market</h2>
+            <p className="text-slate-500 font-medium text-xs md:text-sm mt-1">Personnel Authorization & Enquiries</p>
+          </div>
+          <button onClick={() => setShowDiagnostics(!showDiagnostics)} className="p-2 text-slate-300 hover:text-blue-500 transition-colors">
+            <Settings size={16} />
+          </button>
         </div>
         <div className="flex bg-slate-100 p-1 rounded-2xl overflow-x-auto no-scrollbar whitespace-nowrap">
           <button onClick={() => setActiveTab('end-user-enquiry')} 
-            className={`px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase transition-all ${activeTab === 'end-user-enquiry' ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' : 'text-slate-500 hover:text-slate-700'}`}>End-User Section</button>
+            className={`px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase transition-all ${activeTab === 'end-user-enquiry' ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' : 'text-slate-500 hover:text-slate-700'}`}>End-Users</button>
           <button onClick={() => setActiveTab('provider-enquiry')} 
-            className={`px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase transition-all ${activeTab === 'provider-enquiry' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-500 hover:text-slate-700'}`}>Provider Section</button>
+            className={`px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase transition-all ${activeTab === 'provider-enquiry' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-500 hover:text-slate-700'}`}>Providers</button>
         </div>
       </div>
+
+      {showDiagnostics && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-4 bg-slate-900 rounded-2xl font-mono text-[10px] text-emerald-400 overflow-x-auto">
+          <p className="mb-2 text-slate-500 font-bold uppercase tracking-widest">// RAW SETTINGS DATA</p>
+          <pre>{JSON.stringify(settings, null, 2)}</pre>
+          <p className="my-2 text-slate-500 font-bold uppercase tracking-widest">// ACTIVE TAB: {activeTab}</p>
+          <p className="text-slate-500 font-bold uppercase tracking-widest">// ENQUIRY COUNT: {enquiries.length}</p>
+        </motion.div>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
           
           {/* ─── Manage Officials Section ─── */}
           <div className="bg-white p-6 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-8">
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${activeTab === 'end-user-enquiry' ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white'}`}>
-                <ShieldCheck size={24} />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl ${activeTab === 'end-user-enquiry' ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white'}`}>
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-800 uppercase tracking-tight">Manage {activeTab === 'end-user-enquiry' ? 'End-User' : 'Provider'} Officials</h4>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Add or update authorized personnel codes</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-black text-slate-800 uppercase tracking-tight">Manage {activeTab === 'end-user-enquiry' ? 'End-User' : 'Provider'} Officials</h4>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Add, edit or remove authorized people for this category</p>
-              </div>
+              {settingsLoading && <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
               {/* Form Section */}
               <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
-                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{editingOfficial ? 'Update Person' : 'Register New Person'}</h5>
-                <input className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none font-bold text-slate-700 text-sm focus:border-blue-400 transition-all"
-                  placeholder="Official Name"
-                  value={editingOfficial ? editingOfficial.authorizedOfficial : newOfficial.authorizedOfficial} 
-                  onChange={e => editingOfficial 
-                    ? setEditingOfficial({...editingOfficial, authorizedOfficial: e.target.value}) 
-                    : setNewOfficial({...newOfficial, authorizedOfficial: e.target.value})} />
-                <input className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none font-bold text-slate-700 text-sm focus:border-blue-400 transition-all"
-                  placeholder="Secret Code"
-                  value={editingOfficial ? editingOfficial.assessCode : newOfficial.assessCode} 
-                  onChange={e => editingOfficial 
-                    ? setEditingOfficial({...editingOfficial, assessCode: e.target.value}) 
-                    : setNewOfficial({...newOfficial, assessCode: e.target.value})} />
+                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{editingOfficial ? 'Update Personnel' : 'Add New Personnel'}</h5>
+                <div className="space-y-3">
+                  <input className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl outline-none font-bold text-slate-700 text-sm focus:border-blue-400 transition-all shadow-sm"
+                    placeholder="Full Official Name"
+                    value={editingOfficial ? editingOfficial.authorizedOfficial : newOfficial.authorizedOfficial} 
+                    onChange={e => editingOfficial 
+                      ? setEditingOfficial({...editingOfficial, authorizedOfficial: e.target.value}) 
+                      : setNewOfficial({...newOfficial, authorizedOfficial: e.target.value})} />
+                  <input className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl outline-none font-bold text-slate-700 text-sm focus:border-blue-400 transition-all shadow-sm"
+                    placeholder="Access / Assess Code"
+                    value={editingOfficial ? editingOfficial.assessCode : newOfficial.assessCode} 
+                    onChange={e => editingOfficial 
+                      ? setEditingOfficial({...editingOfficial, assessCode: e.target.value}) 
+                      : setNewOfficial({...newOfficial, assessCode: e.target.value})} />
+                </div>
                 <div className="flex gap-2 pt-2">
                   <button onClick={editingOfficial ? handleUpdateOfficial : handleAddOfficial} 
-                    className={`flex-1 py-3 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all ${activeTab === 'end-user-enquiry' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                    {editingOfficial ? 'Save Changes' : 'Register Person'}
+                    className={`flex-1 py-4 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all ${activeTab === 'end-user-enquiry' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-100' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-100'}`}>
+                    {editingOfficial ? 'Update Codes' : 'Save Personnel'}
                   </button>
                   {editingOfficial && (
-                    <button onClick={() => setEditingOfficial(null)} className="px-4 py-3 bg-white text-slate-400 border border-slate-200 rounded-xl font-black uppercase text-[10px] hover:bg-slate-50">Cancel</button>
+                    <button onClick={() => setEditingOfficial(null)} className="px-4 py-4 bg-white text-slate-400 border border-slate-200 rounded-xl font-black uppercase text-[10px] hover:bg-slate-50 transition-all">Cancel</button>
                   )}
                 </div>
               </div>
 
               {/* List Section */}
-              <div className="xl:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[320px] overflow-y-auto no-scrollbar pr-2">
-                {(settings[categoryKey] || []).map((official, index) => (
-                  <div key={index} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm group hover:border-blue-300 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 flex items-center justify-center rounded-lg font-black text-[10px] ${activeTab === 'end-user-enquiry' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>
-                        {index + 1}
-                      </div>
-                      <div className="max-w-[150px]">
-                        <h4 className="font-black text-slate-800 uppercase tracking-tight text-[11px] truncate">{official.authorizedOfficial}</h4>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Code: {official.assessCode}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => setEditingOfficial({ ...official, index })} className="p-2 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
-                        <Edit size={14} />
-                      </button>
-                      <button onClick={() => handleDeleteOfficial(index)} className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+              <div className="xl:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto no-scrollbar pr-2">
+                {settingsLoading ? (
+                  <div className="col-span-full p-10 flex items-center justify-center text-slate-300 font-bold uppercase text-[10px] tracking-widest">
+                    Loading personnel list...
                   </div>
-                ))}
-                {(settings[categoryKey] || []).length === 0 && (
-                  <div className="col-span-full p-10 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 text-slate-300 font-bold italic text-xs">
-                    No officials registered for this category.
+                ) : (settings[categoryKey] || []).length > 0 ? (
+                  (settings[categoryKey] || []).map((official, index) => (
+                    <div key={index} className="bg-white p-5 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm group hover:border-blue-300 hover:shadow-md transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-xs ${activeTab === 'end-user-enquiry' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>
+                          {index + 1}
+                        </div>
+                        <div className="max-w-[180px]">
+                          <h4 className="font-black text-slate-800 uppercase tracking-tight text-xs truncate">{official.authorizedOfficial}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Code:</span>
+                            <span className="text-[10px] text-emerald-600 font-black font-mono">{official.assessCode}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setEditingOfficial({ ...official, index })} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
+                          <Edit size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteOfficial(index)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full p-12 text-center bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-100">
+                    <p className="text-slate-300 font-black uppercase text-[10px] tracking-widest">No officials found in this category</p>
+                    <p className="text-slate-400 text-[10px] mt-2 italic">Please add an authorized person to enable form submissions.</p>
                   </div>
                 )}
               </div>
