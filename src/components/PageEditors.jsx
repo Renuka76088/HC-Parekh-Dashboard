@@ -2,11 +2,29 @@ import React, { useState, useEffect } from 'react';
 import {
   MapPin, Briefcase, Settings, Info, Save, Plus, Trash2,
   ChevronRight, GripVertical, Layers, FileCode, ShieldCheck,
-  BellRing, X, Edit,
+  BellRing, X, Edit, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { contentApi, corporateApi, workforceApi } from '../api';
+import { contentApi, corporateApi, workforceApi, webMarketApi } from '../api';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
+// ─── Quill Config ───────────────────────────────────────────────────────────
+const quillModules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    ['clean']
+  ],
+};
+
+const quillFormats = [
+  'header', 'bold', 'italic', 'underline', 'strike',
+  'color', 'background', 'list', 'bullet'
+];
 
 // ─── Helper ─────────────────────────────────────────────────────────────────
 const toArr = (v) => Array.isArray(v) ? v : (v ? [v] : []);
@@ -170,6 +188,20 @@ const ItemModal = ({ isOpen, onClose, title, fields = [], initialData = {}, onSa
                           required={field.required}
                         />
                       </>
+                    ) : field.type === 'quill' ? (
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-tight">{field.label}</label>
+                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden min-h-[300px]">
+                          <ReactQuill
+                            theme="snow"
+                            value={form[field.name] || ''}
+                            onChange={(val) => set(field.name, val)}
+                            modules={quillModules}
+                            formats={quillFormats}
+                            className="h-[250px]"
+                          />
+                        </div>
+                      </div>
                     ) : (
                       <>
                         <label className="text-sm font-bold text-slate-700 uppercase tracking-tight">{field.label}</label>
@@ -990,6 +1022,7 @@ export const PageContentManager = () => (
       <ContentCard title="Services & Rates"   description="Edit professional plans and key points."              to="/services"   icon={Briefcase} />
       <ContentCard title="Corporate Hub"      description="Notices, Tenders, and MOU filings."                  to="/corporate"  icon={Layers} />
       <ContentCard title="Hiring & Careers"   description="Social Media Experts and career opportunities."       to="/hiring"     icon={Plus} />
+      <ContentCard title="Circulars"          description="Create and manage official circulars."                to="/circulars"  icon={FileText} />
       <ContentCard title="SEO & Global Meta"  description="Site title, favicon, and keywords."                  to="/settings"   icon={Settings} />
     </div>
 
@@ -1009,3 +1042,523 @@ export const PageContentManager = () => (
     </div>
   </div>
 );
+
+// ─── CircularEditor ──────────────────────────────────────────────────────────
+export const CircularEditor = () => {
+  const [loading, setLoading] = useState(true);
+  const [circulars, setCirculars] = useState([]);
+  const [modal, setModal] = useState({ open: false, data: {}, isEdit: false });
+
+  useEffect(() => { fetchCirculars(); }, []);
+
+  const fetchCirculars = async () => {
+    try { 
+      const res = await corporateApi.getCirculars(); 
+      setCirculars(res.data || []); 
+    } catch { console.error('Error fetching circulars'); }
+    finally { setLoading(false); }
+  };
+
+  const handleSave = async (formData) => {
+    try {
+      if (modal.isEdit && modal.data._id) {
+        await corporateApi.updateCircular(modal.data._id, formData);
+        alert('Circular updated!');
+      } else {
+        await corporateApi.addCircular(formData);
+        alert('Circular published!');
+      }
+      fetchCirculars();
+    } catch { alert('Failed to save circular'); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this circular?')) return;
+    try { await corporateApi.deleteCircular(id); fetchCirculars(); }
+    catch { alert('Delete failed'); }
+  };
+
+  const openModal = (data = {}, isEdit = false) => {
+    setModal({
+      open: true, isEdit, data: {
+        ...data,
+        circularNo: data.circularNo || `HCPA / ${new Date().getFullYear()} / `,
+        circularDate: data.circularDate || `/  / ${new Date().getFullYear()}`,
+        subject: data.subject || '',
+        kindAttention: data.kindAttention || '',
+        content: data.content || '',
+      }
+    });
+  };
+
+  const circularFields = [
+    { name: 'circularNo', label: 'Circular No.', required: true, placeholder: 'HCPA / 2026 / 01' },
+    { name: 'circularDate', label: 'Circular Date', required: true, placeholder: '23 / 04 / 2026' },
+    { name: 'subject', label: 'Subject', required: true, placeholder: 'Subject of the circular' },
+    { name: 'kindAttention', label: 'Kind Attention', placeholder: 'e.g. All Departments' },
+    { name: 'content', label: 'Circular Content', type: 'quill', required: true },
+  ];
+
+  if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Circulars...</div>;
+
+  return (
+    <div className="max-w-4xl">
+      <ItemModal
+        isOpen={modal.open}
+        onClose={() => setModal({ open: false, data: {}, isEdit: false })}
+        title={modal.isEdit ? 'Edit Circular' : 'Add New Circular'}
+        fields={circularFields}
+        initialData={modal.data}
+        onSave={handleSave}
+      />
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Official Circulars</h3>
+          <p className="text-slate-500 font-medium">Manage and publish official company circulars</p>
+        </div>
+        <button onClick={() => openModal()}
+          className="flex items-center space-x-3 px-6 py-3 bg-rose-600 text-white rounded-2xl shadow-xl shadow-rose-100 hover:bg-rose-700 transition-all font-black">
+          <Plus size={20} /><span>New Circular</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {circulars.map((c) => (
+          <div key={c._id} className="bg-white p-5 rounded-2xl border border-slate-200 group hover:border-rose-300 transition-all flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center group-hover:bg-rose-50 group-hover:text-rose-600 transition-all">
+                <FileText size={24} />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-800">{c.subject}</h4>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">{c.circularNo}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.circularDate}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={() => openModal(c, true)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Edit size={16} /></button>
+              <button onClick={() => handleDelete(c._id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={16} /></button>
+            </div>
+          </div>
+        ))}
+        {circulars.length === 0 && (
+          <div className="text-center py-12 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+            <p className="text-slate-400 font-medium">No circulars found. Click 'New Circular' to get started.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── WebMarketEditor ────────────────────────────────────────────────────────
+export const WebMarketEditor = () => {
+  const [settings, setSettings] = useState({ endUsers: [], serviceProviders: [] });
+  const [newOfficial, setNewOfficial] = useState({ authorizedOfficial: '', assessCode: '' });
+  const [editingOfficial, setEditingOfficial] = useState(null);
+  const [activeTab, setActiveTab] = useState('end-user-enquiry');
+  const [enquiries, setEnquiries] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [editEnquiry, setEditEnquiry] = useState(null);
+
+  const fetchSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const res = await webMarketApi.getSettings();
+      console.log('Fetched settings:', res.data);
+      const data = res.data || {};
+      setSettings({
+        endUsers: data.endUsers || [],
+        serviceProviders: data.serviceProviders || []
+      });
+    } catch (err) {
+      console.error('Settings fetch error:', err);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const fetchEnquiries = async (type) => {
+    setLoading(true);
+    try {
+      const res = type === 'end-user' 
+        ? await webMarketApi.getEndUserEnquiries() 
+        : await webMarketApi.getServiceProviderEnquiries();
+      setEnquiries(res.data || []);
+    } catch (err) {
+      console.error('Enquiry fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+    fetchEnquiries(activeTab === 'end-user-enquiry' ? 'end-user' : 'service-provider');
+  }, [activeTab]);
+
+  const categoryKey = activeTab === 'end-user-enquiry' ? 'endUsers' : 'serviceProviders';
+
+  const handleAddOfficial = async () => {
+    if (!newOfficial.authorizedOfficial || !newOfficial.assessCode) {
+      alert('Please fill both fields.');
+      return;
+    }
+    try {
+      const updatedList = [...(settings[categoryKey] || []), newOfficial];
+      const updatedSettings = { ...settings, [categoryKey]: updatedList };
+      await webMarketApi.updateSettings(updatedSettings);
+      setNewOfficial({ authorizedOfficial: '', assessCode: '' });
+      await fetchSettings();
+      alert('Official added!');
+    } catch (err) {
+      alert('Failed to add official');
+    }
+  };
+
+  const handleUpdateOfficial = async () => {
+    if (!editingOfficial) return;
+    try {
+      const updatedList = [...settings[categoryKey]];
+      updatedList[editingOfficial.index] = { 
+        authorizedOfficial: editingOfficial.authorizedOfficial, 
+        assessCode: editingOfficial.assessCode 
+      };
+      const updatedSettings = { ...settings, [categoryKey]: updatedList };
+      await webMarketApi.updateSettings(updatedSettings);
+      setEditingOfficial(null);
+      await fetchSettings();
+      alert('Official updated!');
+    } catch (err) {
+      alert('Failed to update official');
+    }
+  };
+
+  const handleDeleteOfficial = async (index) => {
+    if (!window.confirm('Remove this authorized person?')) return;
+    try {
+      const updatedList = settings[categoryKey].filter((_, i) => i !== index);
+      const updatedSettings = { ...settings, [categoryKey]: updatedList };
+      await webMarketApi.updateSettings(updatedSettings);
+      await fetchSettings();
+    } catch (err) {
+      alert('Failed to delete official');
+    }
+  };
+
+  const handleUpdateEnquiry = async () => {
+    try {
+      if (activeTab === 'end-user-enquiry') {
+        await webMarketApi.updateEndUserEnquiry(editEnquiry._id, editEnquiry);
+      } else {
+        await webMarketApi.updateServiceProviderEnquiry(editEnquiry._id, editEnquiry);
+      }
+      alert('Updated successfully!');
+      setEditEnquiry(null);
+      fetchEnquiries(activeTab === 'end-user-enquiry' ? 'end-user' : 'service-provider');
+    } catch (err) {
+      alert('Update failed');
+    }
+  };
+
+  const handleDeleteEnquiry = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this submission?')) return;
+    try {
+      if (activeTab === 'end-user-enquiry') await webMarketApi.deleteEndUserEnquiry(id);
+      else await webMarketApi.deleteServiceProviderEnquiry(id);
+      fetchEnquiries(activeTab === 'end-user-enquiry' ? 'end-user' : 'service-provider');
+    } catch (err) {
+      alert('Delete failed');
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-full overflow-hidden">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">HCP Web Market</h2>
+          <p className="text-slate-500 font-medium text-xs md:text-sm mt-1">Manage officials and enquiries in one place</p>
+        </div>
+        <div className="flex bg-slate-100 p-1 rounded-2xl overflow-x-auto no-scrollbar whitespace-nowrap">
+          <button onClick={() => setActiveTab('end-user-enquiry')} 
+            className={`px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase transition-all ${activeTab === 'end-user-enquiry' ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' : 'text-slate-500 hover:text-slate-700'}`}>End-User Section</button>
+          <button onClick={() => setActiveTab('provider-enquiry')} 
+            className={`px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase transition-all ${activeTab === 'provider-enquiry' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-500 hover:text-slate-700'}`}>Provider Section</button>
+        </div>
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+          
+          {/* ─── Manage Officials Section ─── */}
+          <div className="bg-white p-6 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-8">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-xl ${activeTab === 'end-user-enquiry' ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white'}`}>
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <h4 className="font-black text-slate-800 uppercase tracking-tight">Manage {activeTab === 'end-user-enquiry' ? 'End-User' : 'Provider'} Officials</h4>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Add, edit or remove authorized people for this category</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              {/* Form Section */}
+              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
+                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{editingOfficial ? 'Update Person' : 'Register New Person'}</h5>
+                <input className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none font-bold text-slate-700 text-sm focus:border-blue-400 transition-all"
+                  placeholder="Official Name"
+                  value={editingOfficial ? editingOfficial.authorizedOfficial : newOfficial.authorizedOfficial} 
+                  onChange={e => editingOfficial 
+                    ? setEditingOfficial({...editingOfficial, authorizedOfficial: e.target.value}) 
+                    : setNewOfficial({...newOfficial, authorizedOfficial: e.target.value})} />
+                <input className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none font-bold text-slate-700 text-sm focus:border-blue-400 transition-all"
+                  placeholder="Secret Code"
+                  value={editingOfficial ? editingOfficial.assessCode : newOfficial.assessCode} 
+                  onChange={e => editingOfficial 
+                    ? setEditingOfficial({...editingOfficial, assessCode: e.target.value}) 
+                    : setNewOfficial({...newOfficial, assessCode: e.target.value})} />
+                <div className="flex gap-2 pt-2">
+                  <button onClick={editingOfficial ? handleUpdateOfficial : handleAddOfficial} 
+                    className={`flex-1 py-3 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all ${activeTab === 'end-user-enquiry' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                    {editingOfficial ? 'Save Changes' : 'Register Person'}
+                  </button>
+                  {editingOfficial && (
+                    <button onClick={() => setEditingOfficial(null)} className="px-4 py-3 bg-white text-slate-400 border border-slate-200 rounded-xl font-black uppercase text-[10px] hover:bg-slate-50">Cancel</button>
+                  )}
+                </div>
+              </div>
+
+              {/* List Section */}
+              <div className="xl:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[320px] overflow-y-auto no-scrollbar pr-2">
+                {(settings[categoryKey] || []).map((official, index) => (
+                  <div key={index} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm group hover:border-blue-300 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 flex items-center justify-center rounded-lg font-black text-[10px] ${activeTab === 'end-user-enquiry' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>
+                        {index + 1}
+                      </div>
+                      <div className="max-w-[150px]">
+                        <h4 className="font-black text-slate-800 uppercase tracking-tight text-[11px] truncate">{official.authorizedOfficial}</h4>
+                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Code: {official.assessCode}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setEditingOfficial({ ...official, index })} className="p-2 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
+                        <Edit size={14} />
+                      </button>
+                      <button onClick={() => handleDeleteOfficial(index)} className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {(settings[categoryKey] || []).length === 0 && (
+                  <div className="col-span-full p-10 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 text-slate-300 font-bold italic text-xs">
+                    No officials registered for this category.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ─── Submissions List Section ─── */}
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                <h3 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">{activeTab === 'end-user-enquiry' ? 'End-User Enquiries' : 'Provider Enquiries'}</h3>
+              </div>
+              <div className="flex items-center gap-4">
+                <input 
+                  type="text" 
+                  placeholder="Filter by Official Name..."
+                  className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-blue-400 w-full md:w-64"
+                  onChange={(e) => {
+                    const term = e.target.value.toLowerCase();
+                    setEnquiries(prev => prev.map(enq => ({
+                      ...enq,
+                      _hidden: !enq.authorizedOfficial?.toLowerCase().includes(term) && !enq.name?.toLowerCase().includes(term)
+                    })));
+                  }}
+                />
+                <button onClick={() => fetchEnquiries(activeTab === 'end-user-enquiry' ? 'end-user' : 'service-provider')} className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase hover:underline shrink-0">
+                  <Settings size={12} className="animate-spin-slow" /> Refresh Data
+                </button>
+              </div>
+            </div>
+            
+            {loading ? (
+              <div className="p-20 text-center space-y-4 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
+                <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto" />
+                <p className="text-slate-400 font-bold italic text-sm">Synchronizing...</p>
+              </div>
+            ) : enquiries.filter(e => !e._hidden).length === 0 ? (
+              <div className="p-16 text-center space-y-6 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-100">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300">
+                  <FileText size={40} />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-slate-400 font-black uppercase text-sm tracking-tight">No Submissions Found</p>
+                  <p className="text-slate-300 text-xs font-medium max-w-xs mx-auto">Try adjusting your filter or registering new officials above.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {enquiries.filter(e => !e._hidden).map(enq => (
+                  <div key={enq._id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-blue-300 hover:shadow-xl hover:shadow-blue-900/5 transition-all">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h4 className="font-black text-slate-800 uppercase tracking-tight text-lg">{enq.name}</h4>
+                          <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[9px] font-black rounded-full uppercase tracking-widest">{new Date(enq.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 font-bold tracking-tight">{enq.email} <span className="mx-2 text-slate-200">|</span> {enq.contactNo}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button title="Edit Submission" onClick={() => setEditEnquiry(enq)} className="p-3 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm">
+                          <Edit size={20} />
+                        </button>
+                        <button title="Delete Submission" onClick={() => handleDeleteEnquiry(enq._id)} className="p-3 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-all shadow-sm">
+                          <Trash2 size={20} />
+                        </button>
+                        <button title="View Details" onClick={() => setSelectedEnquiry(selectedEnquiry === enq._id ? null : enq._id)} 
+                          className={`p-3 rounded-xl transition-all ${selectedEnquiry === enq._id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-100'}`}>
+                          <Info size={20} />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {selectedEnquiry === enq._id && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-6 pt-6 border-t border-slate-50 overflow-hidden">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 text-[11px] font-bold">
+                          <div className="space-y-1">
+                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Client Category</span>
+                            <span className="text-slate-800 uppercase">{enq.category || 'Professional'}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Membership</span>
+                            <span className="text-slate-800 uppercase">{enq.membershipType}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Record ID</span>
+                            <span className="text-slate-400 font-mono text-[9px]">{enq._id}</span>
+                          </div>
+                          <div className="col-span-full sm:col-span-2 space-y-1">
+                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Registered Address</span>
+                            <span className="text-slate-600 font-medium text-xs leading-relaxed block">{enq.address || enq.businessAddress}</span>
+                          </div>
+                          <div className="space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Authorization Used</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-600 font-black text-[10px]">{enq.authorizedOfficial}</span>
+                              <span className="text-slate-300">|</span>
+                              <span className="text-slate-500 font-mono text-[9px]">{enq.assessCode}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-8 space-y-3">
+                          <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Selected Services / Expertise</span>
+                          <div className="flex flex-wrap gap-2">
+                            {(enq.itServicesRequired || enq.itServicesOffered || []).length > 0 ? (
+                              (enq.itServicesRequired || enq.itServicesOffered || []).map((s, i) => (
+                                <span key={i} className="px-4 py-1.5 bg-blue-50 text-blue-700 text-[10px] font-black rounded-full uppercase tracking-tight border border-blue-100">{s}</span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400 italic text-xs">No specific services selected</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {enq.paymentTerms && (
+                          <div className="mt-8 p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Terms & Conditions</span>
+                            <p className="text-xs text-slate-600 font-medium leading-relaxed">{enq.paymentTerms}</p>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Edit Submission Modal */}
+      <AnimatePresence>
+        {editEnquiry && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditEnquiry(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-emerald-600 text-white rounded-2xl">
+                    <Edit size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Edit Record</h3>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Modifying Submission Details</p>
+                  </div>
+                </div>
+                <button onClick={() => setEditEnquiry(null)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-8 space-y-8 overflow-y-auto no-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Client Full Name</label>
+                    <input className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white focus:border-emerald-400 transition-all"
+                      value={editEnquiry.name} onChange={e => setEditEnquiry({...editEnquiry, name: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Phone Number</label>
+                    <input className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white focus:border-emerald-400 transition-all"
+                      value={editEnquiry.contactNo} onChange={e => setEditEnquiry({...editEnquiry, contactNo: e.target.value})} />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Email Address</label>
+                    <input className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white focus:border-emerald-400 transition-all"
+                      value={editEnquiry.email} onChange={e => setEditEnquiry({...editEnquiry, email: e.target.value})} />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Registered Address</label>
+                    <textarea rows={3} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white focus:border-emerald-400 transition-all resize-none"
+                      value={editEnquiry.address || editEnquiry.businessAddress} 
+                      onChange={e => setEditEnquiry({...editEnquiry, [editEnquiry.address ? 'address' : 'businessAddress']: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Membership Status</label>
+                    <select className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white focus:border-emerald-400 transition-all"
+                      value={editEnquiry.membershipType} onChange={e => setEditEnquiry({...editEnquiry, membershipType: e.target.value})}>
+                      {['Eco', 'Silver Membership', 'Gold Membership', 'Platinum Membership'].map(m => <option key={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Technical Staff</label>
+                    <input className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white focus:border-emerald-400 transition-all"
+                      value={editEnquiry.technicalStaffCount || ''} onChange={e => setEditEnquiry({...editEnquiry, technicalStaffCount: e.target.value})} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-4">
+                <button onClick={handleUpdateEnquiry} className="flex-1 py-5 bg-emerald-600 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all">Apply Changes</button>
+                <button onClick={() => setEditEnquiry(null)} className="px-8 py-5 bg-white text-slate-400 border border-slate-200 rounded-3xl font-black uppercase tracking-widest hover:bg-slate-50 transition-all">Discard</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+

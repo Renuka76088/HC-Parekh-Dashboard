@@ -16,7 +16,9 @@ import {
   User,
   LayoutDashboard,
   ChevronLeft,
-  Plus
+  Plus,
+  FileText,
+  Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -25,7 +27,9 @@ import {
   ServicesChargesEditor, 
   CorporateEditor, 
   HiringEditor,
-  PageContentManager
+  PageContentManager,
+  CircularEditor,
+  WebMarketEditor
 } from './components/PageEditors';
 import logo from '../public/logo.png'; 
 
@@ -74,6 +78,8 @@ function App() {
     { label: 'Services', icon: Briefcase, to: '/services' },
     { label: 'Corporate', icon: Layers, to: '/corporate' },
     { label: 'Hiring', icon: Plus, to: '/hiring' },
+    { label: 'Circulars', icon: FileText, to: '/circulars' },
+    { label: 'Web Market', icon: Globe, to: '/web-market' },
   ];
 
   return (
@@ -197,6 +203,8 @@ function App() {
               <Route path="/services" element={<ServicesChargesEditor />} />
               <Route path="/corporate" element={<CorporateEditor />} />
               <Route path="/hiring" element={<HiringEditor />} />
+              <Route path="/circulars" element={<CircularEditor />} />
+              <Route path="/web-market" element={<WebMarketEditor />} />
             </Routes>
           </div>
         </div>

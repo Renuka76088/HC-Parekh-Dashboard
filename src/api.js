@@ -35,6 +35,22 @@ export const corporateApi = {
   addNotice:     (data)     => api.post('/corporate/notices', data),
   updateNotice:  (id, data) => api.put(`/corporate/notices/${id}`, data),
   deleteNotice:  (id)       => api.delete(`/corporate/notices/${id}`),
+
+  getCirculars:   ()         => api.get('/corporate/circulars'),
+  addCircular:    (data)     => api.post('/corporate/circulars', data),
+  updateCircular: (id, data) => api.put(`/corporate/circulars/${id}`, data),
+  deleteCircular: (id)       => api.delete(`/corporate/circulars/${id}`),
+};
+
+export const webMarketApi = {
+  getSettings: () => api.get('/web-market/settings'),
+  updateSettings: (data) => api.put('/web-market/settings', data),
+  getEndUserEnquiries: () => api.get('/web-market/end-user'),
+  updateEndUserEnquiry: (id, data) => api.put(`/web-market/end-user/${id}`, data),
+  deleteEndUserEnquiry: (id) => api.delete(`/web-market/end-user/${id}`),
+  getServiceProviderEnquiries: () => api.get('/web-market/service-provider'),
+  updateServiceProviderEnquiry: (id, data) => api.put(`/web-market/service-provider/${id}`, data),
+  deleteServiceProviderEnquiry: (id) => api.delete(`/web-market/service-provider/${id}`),
 };
 
 export const workforceApi = {
