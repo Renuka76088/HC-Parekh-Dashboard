@@ -1087,6 +1087,9 @@ export const CircularEditor = () => {
         subject: data.subject || '',
         kindAttention: data.kindAttention || '',
         content: data.content || '',
+        signatureName: data.signatureName || 'HC PAREKH',
+        signatureTitle: data.signatureTitle || 'Sd/-',
+        onBehalfOf: data.onBehalfOf || 'HC PAREKH & ASSOCIATES',
       }
     });
   };
@@ -1097,6 +1100,9 @@ export const CircularEditor = () => {
     { name: 'subject', label: 'Subject', required: true, placeholder: 'Subject of the circular' },
     { name: 'kindAttention', label: 'Kind Attention', placeholder: 'e.g. All Departments' },
     { name: 'content', label: 'Circular Content', type: 'quill', required: true },
+    { name: 'signatureTitle', label: 'Signature Prefix (e.g. Sd/-)', placeholder: 'Sd/-' },
+    { name: 'signatureName', label: 'Signature Name', placeholder: 'HC PAREKH' },
+    { name: 'onBehalfOf', label: 'On Behalf Of', placeholder: 'HC PAREKH & ASSOCIATES' },
   ];
 
   if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Circulars...</div>;
