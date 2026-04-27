@@ -901,20 +901,16 @@ export const HiringEditor = () => {
       placeholder: 'e.g. Social Media Influencer', required: true,
     },
     {
-      name: 'campaignHeading', label: 'Campaign Label (Text on Badge)',
-      placeholder: 'e.g. CAMPAIGN',
-    },
-    {
-      name: 'campaign', label: 'Campaign Name',
-      placeholder: 'e.g. Social Media campaign / Brand Promotion',
-    },
-    {
       name: 'type', label: 'Employment Type', type: 'select',
-      options: ['On Contract', 'On Payroll'], required: false,
+      options: ['on contract', 'on payroll', 'freelance', 'nil/nothing'], required: false,
     },
     {
-      name: 'description', label: 'Job Description', type: 'textarea', required: true,
-      placeholder: 'e.g. Experienced Social Media Influencers irrespective of locations are required for our long-term Online Business Advertisements...',
+      name: 'descriptionHeading', label: 'Description Section Label',
+      placeholder: 'e.g. Job Description',
+    },
+    {
+      name: 'description', label: 'Job Description', type: 'quill', required: true,
+      placeholder: 'Describe the role and responsibilities...',
     },
     {
       name: 'targetSectorsHeading', label: 'Target Sectors Label',
@@ -933,19 +929,11 @@ export const HiringEditor = () => {
       placeholder: 'e.g. LinkedIn, Instagram, YouTube...',
     },
     {
-      name: 'applyNowTitle', label: 'Apply Now Heading',
-      placeholder: 'e.g. Apply Now',
-    },
-    {
-      name: 'quotationInstruction', label: 'Quotation Instruction', type: 'textarea',
-      placeholder: 'e.g. Submit your Quotation in PDF format including payment terms.',
-    },
-    {
       name: 'emailHeading', label: 'Email Section Label',
       placeholder: 'e.g. Email Quotation To:',
     },
     {
-      name: 'emails', label: 'Email Quotation To (Multiple)', type: 'stringlist',
+      name: 'emails', label: 'Add Email (Multiple)', type: 'stringlist',
       placeholder: 'Add email address...',
     },
   ];
@@ -988,14 +976,12 @@ export const HiringEditor = () => {
                         {job.type}
                       </span>
                     )}
-                    {job.campaign && (
-                      <span className="px-2.5 py-0.5 bg-slate-200 text-slate-600 text-[9px] font-black uppercase tracking-widest rounded-full">
-                        {(job.campaignHeading || 'CAMPAIGN')}: {job.campaign}
-                      </span>
-                    )}
                   </div>
                   {/* Description */}
-                  <p className="text-sm text-slate-600 font-medium leading-relaxed">{job.description}</p>
+                  <div 
+                    className="text-sm text-slate-600 font-medium leading-relaxed max-h-32 overflow-hidden quill-content"
+                    dangerouslySetInnerHTML={{ __html: job.description.replace(/&nbsp;/g, ' ') }}
+                  />
                 </div>
                 {/* Actions */}
                 <div className="flex gap-1 ml-4 shrink-0 opacity-100 transition-opacity">
@@ -1011,7 +997,7 @@ export const HiringEditor = () => {
                 {toArr(job.emails).length > 0 && (
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Quotation Emails</p>
-                    <p className="text-xs text-rose-600 font-bold">{toArr(job.emails).join(', ')}</p>
+                    <p className="text-xs text-blue-600 font-bold">{toArr(job.emails).join(', ')}</p>
                   </div>
                 )}
               </div>
