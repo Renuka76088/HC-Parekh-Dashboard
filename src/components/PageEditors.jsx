@@ -367,7 +367,7 @@ export const HomeAboutEditor = () => {
             <p className="font-bold text-slate-800">{item.title}</p>
             <p className="text-sm text-slate-500 mt-0.5">{item.description}</p>
           </div>
-          <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+          <div className="flex gap-1 opacity-100 transition-opacity shrink-0">
             <button type="button" onClick={() => openModal(listKey, i)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Edit size={14} /></button>
             <button type="button" onClick={() => deleteItem(listKey, i)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={14} /></button>
           </div>
@@ -650,7 +650,7 @@ export const ServicesChargesEditor = () => {
               <div className="flex-1 text-sm font-bold text-slate-800">
                 {svc.title || svc.name}
               </div>
-              <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1 opacity-100 transition-opacity">
                 <button 
                   onClick={() => handleEdit(svc)} 
                   className="p-1.5 text-blue-400 hover:bg-blue-50 rounded-lg transition-all"
@@ -818,7 +818,7 @@ export const CorporateEditor = () => {
                     <p className="text-[10px] text-rose-600 font-bold mt-1">{toArr(item.points).length} key points</p>
                   )}
                 </div>
-                <div className="flex gap-1 ml-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+                <div className="flex gap-1 ml-3 opacity-100 transition-opacity shrink-0">
                   <button onClick={() => openModal(meta.type, item, true)}
                     className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
                     <Edit size={14} />
@@ -871,7 +871,11 @@ export const HiringEditor = () => {
         alert('Vacancy posted!');
       }
       fetchVacancies();
-    } catch { alert('Failed to save vacancy'); }
+    } catch (err) { 
+      console.error('Save failed:', err);
+      const msg = err.response?.data?.message || err.message;
+      alert('Failed to save vacancy: ' + msg); 
+    }
   };
 
   const handleDelete = async (id) => {
@@ -994,7 +998,7 @@ export const HiringEditor = () => {
                   <p className="text-sm text-slate-600 font-medium leading-relaxed">{job.description}</p>
                 </div>
                 {/* Actions */}
-                <div className="flex gap-1 ml-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1 ml-4 shrink-0 opacity-100 transition-opacity">
                   <button onClick={() => openModal(job, true)}
                     className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Edit"><Edit size={16} /></button>
                   <button onClick={() => handleDelete(job._id)}
@@ -1114,7 +1118,11 @@ export const CircularEditor = () => {
         alert('Circular published!');
       }
       fetchCirculars();
-    } catch { alert('Failed to save circular'); }
+    } catch (err) { 
+      console.error('Save failed:', err);
+      const msg = err.response?.data?.message || err.message;
+      alert('Failed to save circular: ' + msg); 
+    }
   };
 
   const handleDelete = async (id) => {
@@ -1176,7 +1184,7 @@ export const CircularEditor = () => {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex gap-2 opacity-100 transition-opacity">
               <button onClick={() => openModal(c, true)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Edit size={16} /></button>
               <button onClick={() => handleDelete(c._id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={16} /></button>
             </div>
@@ -1417,7 +1425,7 @@ export const WebMarketEditor = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 opacity-100 transition-opacity">
                         <button onClick={() => setEditingOfficial({ ...official, index })} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
                           <Edit size={16} />
                         </button>
