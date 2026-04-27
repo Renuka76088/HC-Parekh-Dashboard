@@ -202,6 +202,50 @@ const ItemModal = ({ isOpen, onClose, title, fields = [], initialData = {}, onSa
                           />
                         </div>
                       </div>
+                    ) : field.type === 'file' ? (
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-tight">{field.label}</label>
+                        <div className="flex flex-col gap-3">
+                          <input
+                            type="file"
+                            accept={field.accept || "*"}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 focus:border-rose-400 outline-none transition-all font-medium text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-black file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100"
+                            onChange={async (e) => {
+                              const file = e.target.files[0];
+                              if (!file) return;
+                              
+                              try {
+                                e.target.disabled = true;
+                                const uploadData = new FormData();
+                                uploadData.append('file', file);
+                                
+                                // Try the secure backend upload
+                                const res = await contentApi.uploadFile(uploadData);
+                                if (res.data && res.data.secure_url) {
+                                  set(field.name, res.data.secure_url);
+                                  alert('File uploaded successfully!');
+                                } else {
+                                  alert('Upload failed: Invalid response from server');
+                                }
+                              } catch (err) {
+                                console.error('Upload error:', err);
+                                alert('Upload failed. Please ensure your BACKEND is running (npm run dev in Backend folder).');
+                              } finally {
+                                e.target.disabled = false;
+                              }
+                            }}
+                          />
+                          {form[field.name] && (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-100">
+                              <ShieldCheck size={14} />
+                              <span className="text-xs font-bold truncate max-w-[200px]">{form[field.name]}</span>
+                              <button type="button" onClick={() => set(field.name, '')} className="ml-auto text-rose-500 hover:text-rose-700">
+                                <X size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     ) : (
                       <>
                         <label className="text-sm font-bold text-slate-700 uppercase tracking-tight">{field.label}</label>
@@ -813,6 +857,7 @@ export const HiringEditor = () => {
   const handleSave = async (formData) => {
     const processed = {
       ...formData,
+      type:             formData.type || undefined, // Allow empty type
       targetSectors:    toArr(formData.targetSectors),
       requiredPlatforms: toArr(formData.requiredPlatforms),
       emails:           toArr(formData.emails),
@@ -861,7 +906,7 @@ export const HiringEditor = () => {
     },
     {
       name: 'type', label: 'Employment Type', type: 'select',
-      options: ['On Contract', 'On Payroll'], required: true,
+      options: ['On Contract', 'On Payroll'], required: false,
     },
     {
       name: 'description', label: 'Job Description', type: 'textarea', required: true,
@@ -1082,27 +1127,15 @@ export const CircularEditor = () => {
     setModal({
       open: true, isEdit, data: {
         ...data,
-        circularNo: data.circularNo || `HCPA / ${new Date().getFullYear()} / `,
-        circularDate: data.circularDate || `/  / ${new Date().getFullYear()}`,
         subject: data.subject || '',
-        kindAttention: data.kindAttention || '',
-        content: data.content || '',
-        signatureName: data.signatureName || 'HC PAREKH',
-        signatureTitle: data.signatureTitle || 'Sd/-',
-        onBehalfOf: data.onBehalfOf || 'HC PAREKH & ASSOCIATES',
+        pdfUrl: data.pdfUrl || '',
       }
     });
   };
 
   const circularFields = [
-    { name: 'circularNo', label: 'Circular No.', required: true, placeholder: 'HCPA / 2026 / 01' },
-    { name: 'circularDate', label: 'Circular Date', required: true, placeholder: '23 / 04 / 2026' },
-    { name: 'subject', label: 'Subject', required: true, placeholder: 'Subject of the circular' },
-    { name: 'kindAttention', label: 'Kind Attention', placeholder: 'e.g. All Departments' },
-    { name: 'content', label: 'Circular Content', type: 'quill', required: true },
-    { name: 'signatureTitle', label: 'Signature Prefix (e.g. Sd/-)', placeholder: 'Sd/-' },
-    { name: 'signatureName', label: 'Signature Name', placeholder: 'HC PAREKH' },
-    { name: 'onBehalfOf', label: 'On Behalf Of', placeholder: 'HC PAREKH & ASSOCIATES' },
+    { name: 'subject', label: 'Circular Subject', required: true, placeholder: 'Enter the subject of the circular...' },
+    { name: 'pdfUrl', label: 'Upload PDF Document', type: 'file', accept: '.pdf', required: true },
   ];
 
   if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Circulars...</div>;
@@ -1139,8 +1172,7 @@ export const CircularEditor = () => {
               <div>
                 <h4 className="font-bold text-slate-800">{c.subject}</h4>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">{c.circularNo}</span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.circularDate}</span>
+                  <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">PDF ATTACHED</span>
                 </div>
               </div>
             </div>

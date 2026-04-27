@@ -18,6 +18,9 @@ export const contentApi = {
 
   getContact:      ()        => api.get('/content/contact'),
   updateContact:   (data)    => api.put('/content/contact', data),
+  uploadFile:      (formData)=> api.post('/content/upload', formData, { 
+    headers: { 'Content-Type': 'multipart/form-data' } 
+  }),
 };
 
 export const corporateApi = {
