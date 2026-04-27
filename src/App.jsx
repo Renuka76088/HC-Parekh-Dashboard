@@ -31,7 +31,7 @@ import {
   CircularEditor,
   WebMarketEditor
 } from './components/PageEditors';
-import logo from '../public/logo.png'; 
+const logo = '/logo.png'; 
 
 // No placeholder components needed anymore
 
