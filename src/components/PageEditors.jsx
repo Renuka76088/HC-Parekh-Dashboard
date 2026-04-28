@@ -104,6 +104,8 @@ const StringListEditor = ({ label, values, onChange, placeholder = 'Type and pre
 // preventing state reset while the user is typing inside the modal.
 const ItemModal = ({ isOpen, onClose, title, fields = [], initialData = {}, onSave }) => {
   const [form, setForm] = useState({});
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   // Re-initialize ONLY when the modal is opened (not on every parent re-render)
   useEffect(() => {
@@ -124,6 +126,26 @@ const ItemModal = ({ isOpen, onClose, title, fields = [], initialData = {}, onSa
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (isUploading) {
+      alert('Please wait for the file to finish uploading before saving.');
+      return;
+    }
+    
+    // Explicit validation since file inputs might have local value but not secure_url yet
+    const missing = fields.filter(f => {
+      if (f.required) {
+        const val = form[f.name];
+        return val === undefined || val === null || val === '';
+      }
+      return false;
+    });
+
+    if (missing.length > 0) {
+      alert(`Please complete all required fields. Missing: ${missing.map(f => f.label).join(', ')}`);
+      return;
+    }
+
     onSave(form);
     onClose();
   };
@@ -215,7 +237,8 @@ const ItemModal = ({ isOpen, onClose, title, fields = [], initialData = {}, onSa
                               if (!file) return;
                               
                               try {
-                                e.target.disabled = true;
+                                setIsUploading(true);
+                                setUploadError('');
                                 const uploadData = new FormData();
                                 uploadData.append('file', file);
                                 
@@ -223,18 +246,20 @@ const ItemModal = ({ isOpen, onClose, title, fields = [], initialData = {}, onSa
                                 const res = await contentApi.uploadFile(uploadData);
                                 if (res.data && res.data.secure_url) {
                                   set(field.name, res.data.secure_url);
-                                  alert('File uploaded successfully!');
                                 } else {
-                                  alert('Upload failed: Invalid response from server');
+                                  setUploadError('Upload failed: Invalid response from server');
                                 }
                               } catch (err) {
-                                console.error('Upload error:', err);
-                                alert('Upload failed. Please ensure your BACKEND is running (npm run dev in Backend folder).');
+                                console.error('Upload error details:', err.response || err);
+                                setUploadError(err.response?.data?.message || 'File upload failed');
                               } finally {
-                                e.target.disabled = false;
+                                setIsUploading(false);
                               }
                             }}
                           />
+                          {uploadError && (
+                            <p className="text-xs font-bold text-rose-500 mt-1">{uploadError}</p>
+                          )}
                           {form[field.name] && (
                             <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-100">
                               <ShieldCheck size={14} />
@@ -265,11 +290,11 @@ const ItemModal = ({ isOpen, onClose, title, fields = [], initialData = {}, onSa
 
               {/* Footer */}
               <div className="p-6 border-t border-slate-100 flex items-center justify-end space-x-3 bg-slate-50/50 shrink-0">
-                <button type="button" onClick={onClose} className="px-6 py-2.5 text-slate-600 font-bold hover:bg-white rounded-xl transition-all border border-slate-200">
+                <button type="button" onClick={onClose} className="px-6 py-2.5 text-slate-600 font-bold hover:bg-white rounded-xl transition-all border border-slate-200" disabled={isUploading}>
                   Cancel
                 </button>
-                <button type="submit" className="px-8 py-2.5 bg-rose-600 text-white font-black rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-100">
-                  {initialData?._id ? 'Update' : 'Save'}
+                <button type="submit" disabled={isUploading} className="px-8 py-2.5 bg-rose-600 text-white font-black rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isUploading ? 'Uploading...' : (initialData?._id ? 'Update' : 'Save')}
                 </button>
               </div>
             </form>
@@ -691,19 +716,20 @@ export const ServicesChargesEditor = () => {
 // ─── CorporateEditor ──────────────────────────────────────────────────────────
 export const CorporateEditor = () => {
   const [modal, setModal] = useState({ open: false, type: null, data: {}, isEdit: false });
-  const [items, setItems] = useState({ tenders: [], mous: [], notices: [] });
+  const [items, setItems] = useState({ tenders: [], mous: [], notices: [], circulars: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     try {
-      const [t, m, n] = await Promise.all([
+      const [t, m, n, c] = await Promise.all([
         corporateApi.getTenders(),
         corporateApi.getMOUs(),
         corporateApi.getNotices(),
+        corporateApi.getCirculars(),
       ]);
-      setItems({ tenders: t.data || [], mous: m.data || [], notices: n.data || [] });
+      setItems({ tenders: t.data || [], mous: m.data || [], notices: n.data || [], circulars: c.data || [] });
     } catch { console.error('Error fetching corporate data'); }
     finally { setLoading(false); }
   };
@@ -715,11 +741,13 @@ export const CorporateEditor = () => {
         if (type === 'Tender') await corporateApi.updateTender(existing._id, formData);
         else if (type === 'MOU') await corporateApi.updateMOU(existing._id, formData);
         else if (type === 'Notice') await corporateApi.updateNotice(existing._id, formData);
+        else if (type === 'Circular') await corporateApi.updateCircular(existing._id, formData);
         alert(`${type} updated!`);
       } else {
         if (type === 'Tender') await corporateApi.addTender(formData);
         else if (type === 'MOU') await corporateApi.addMOU(formData);
         else if (type === 'Notice') await corporateApi.addNotice(formData);
+        else if (type === 'Circular') await corporateApi.addCircular(formData);
         alert(`${type} published!`);
       }
       fetchAll();
@@ -732,6 +760,7 @@ export const CorporateEditor = () => {
       if (type === 'Tender') await corporateApi.deleteTender(id);
       else if (type === 'MOU') await corporateApi.deleteMOU(id);
       else if (type === 'Notice') await corporateApi.deleteNotice(id);
+      else if (type === 'Circular') await corporateApi.deleteCircular(id);
       fetchAll();
     } catch { alert('Delete failed'); }
   };
@@ -756,6 +785,11 @@ export const CorporateEditor = () => {
       { name: 'ourRequirementsHeading',  label: 'Requirements Heading Label', placeholder: 'e.g. Our Requirements' },
       { name: 'ourRequirements',  label: 'Our Requirements',           type: 'stringlist', placeholder: 'Add requirement...' },
     ];
+    if (type === 'Circular') return [
+      { name: 'subject', label: 'Circular Subject', placeholder: 'e.g. Annual General Meeting', required: true },
+      { name: 'pdfUrl', label: 'Upload PDF Document', type: 'file', accept: '.pdf', required: true },
+      { name: 'publishDate', label: 'Date of Published', type: 'text', placeholder: 'e.g. 28 April 2026', required: false },
+    ];
     return [
       { name: 'title',       label: `${type} Title`,    placeholder: `e.g. Official ${type} 2026`, required: true },
       { name: 'description', label: 'Description',      type: 'textarea', placeholder: 'Summary of the document...', required: true },
@@ -767,6 +801,7 @@ export const CorporateEditor = () => {
     notices: { label: 'Project Notices',   Icon: BellRing,    color: 'text-amber-600', bg: 'bg-amber-100', type: 'Notice' },
     tenders: { label: 'Corporate Tenders', Icon: FileCode,    color: 'text-blue-600',  bg: 'bg-blue-100',  type: 'Tender' },
     mous:    { label: 'Corporate MOU',     Icon: ShieldCheck, color: 'text-rose-600',  bg: 'bg-rose-100',  type: 'MOU' },
+    circulars: { label: 'Circulars',       Icon: FileText,    color: 'text-emerald-600', bg: 'bg-emerald-100', type: 'Circular' },
   };
 
   if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Corporate Data...</div>;
@@ -812,8 +847,9 @@ export const CorporateEditor = () => {
             {items[cat].map((item) => (
               <div key={item._id} className="flex items-start justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 group hover:border-rose-100 transition-all">
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-slate-800 truncate">{item.title}</p>
+                  <p className="font-bold text-slate-800 truncate">{item.title || item.subject}</p>
                   <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{item.description}</p>
+                  {item.pdfUrl && <p className="text-[10px] text-emerald-600 font-bold mt-1">PDF Attached</p>}
                   {toArr(item.points).length > 0 && (
                     <p className="text-[10px] text-rose-600 font-bold mt-1">{toArr(item.points).length} key points</p>
                   )}
@@ -899,6 +935,9 @@ export const HiringEditor = () => {
     {
       name: 'title', label: 'Job Title',
       placeholder: 'e.g. Social Media Influencer', required: true,
+    },
+    {
+      name: 'publishDate', label: 'Date of Published', type: 'text', placeholder: 'e.g. 28 April 2026', required: false,
     },
     {
       name: 'type', label: 'Employment Type', type: 'select',
@@ -1130,6 +1169,7 @@ export const CircularEditor = () => {
   const circularFields = [
     { name: 'subject', label: 'Circular Subject', required: true, placeholder: 'Enter the subject of the circular...' },
     { name: 'pdfUrl', label: 'Upload PDF Document', type: 'file', accept: '.pdf', required: true },
+    { name: 'publishDate', label: 'Date of Published', type: 'text', placeholder: 'e.g. 28 April 2026', required: false },
   ];
 
   if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Circulars...</div>;
