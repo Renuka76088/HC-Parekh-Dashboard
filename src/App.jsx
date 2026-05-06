@@ -251,7 +251,7 @@ function App() {
 }
 
 const AppWrapper = () => (
-  <Router>
+  <Router basename="/adminparekh">
     <App />
   </Router>
 );
