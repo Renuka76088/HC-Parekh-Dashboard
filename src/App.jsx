@@ -19,7 +19,8 @@ import {
   Plus,
   FileText,
   Globe,
-  Settings
+  Settings,
+  IndianRupee
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -30,7 +31,9 @@ import {
   HiringEditor,
   PageContentManager,
   CircularEditor,
-  WebMarketEditor
+  WebMarketEditor,
+  ServiceChargesEditor,
+  NoticeSettingsEditor
 } from './components/PageEditors';
 import Login from './components/Login';
 import ProfileSettings from './components/ProfileSettings';
@@ -92,10 +95,12 @@ function App() {
     { label: 'About Us', icon: Info, to: '/about' },
     { label: 'Contact Us', icon: MapPin, to: '/contact' },
     { label: 'Services', icon: Briefcase, to: '/services' },
+    { label: 'Service Charges', icon: IndianRupee, to: '/service-charges' },
     { label: 'Corporate', icon: Layers, to: '/corporate' },
     { label: 'Hiring', icon: Plus, to: '/hiring' },
     { label: 'Circulars', icon: FileText, to: '/circulars' },
     { label: 'Web Market', icon: Globe, to: '/web-market' },
+    { label: 'Notice Settings', icon: FileText, to: '/notice-settings' },
     { label: 'Profile', icon: User, to: '/profile' },
   ];
 
@@ -246,6 +251,8 @@ function App() {
                   <Route path="/hiring" element={<HiringEditor />} />
                   <Route path="/circulars" element={<CircularEditor />} />
                   <Route path="/web-market" element={<WebMarketEditor />} />
+                  <Route path="/service-charges" element={<ServiceChargesEditor />} />
+                  <Route path="/notice-settings" element={<NoticeSettingsEditor />} />
                   <Route path="/profile" element={<ProfileSettings />} />
                 </Routes>
               </div>

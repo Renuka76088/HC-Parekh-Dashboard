@@ -488,7 +488,7 @@ export const HomeAboutEditor = () => {
 // ─── ContactLocationEditor ────────────────────────────────────────────────────
 export const ContactLocationEditor = () => {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ locations: [], emails: { appointment: [], services: [] } });
+  const [data, setData] = useState({ locations: [], emails: [] });
 
   useEffect(() => { fetchContact(); }, []);
 
@@ -497,12 +497,15 @@ export const ContactLocationEditor = () => {
       const res = await contentApi.getContact();
       if (res.data) {
         const d = res.data;
+        const emails = Array.isArray(d.emails) && d.emails.length > 0 
+          ? d.emails 
+          : (d.emails?.appointment || d.emails?.services 
+              ? [...toArr(d.emails?.appointment), ...toArr(d.emails?.services)] 
+              : ["appointment@hcparekh.com", "services@hcparekh.com"]
+            );
         setData({
           ...d,
-          emails: {
-            appointment: toArr(d.emails?.appointment),
-            services:    toArr(d.emails?.services),
-          },
+          emails: emails
         });
       }
     } catch (err) { console.error(err); }
@@ -567,17 +570,11 @@ export const ContactLocationEditor = () => {
       </SectionEditor>
 
       <SectionEditor title="Contact Emails">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           <StringListEditor
-            label="Appointment Emails"
-            values={data.emails?.appointment}
-            onChange={(v) => setData({ ...data, emails: { ...data.emails, appointment: v } })}
-            placeholder="Add email address..."
-          />
-          <StringListEditor
-            label="Project Services Emails"
-            values={data.emails?.services}
-            onChange={(v) => setData({ ...data, emails: { ...data.emails, services: v } })}
+            label="Manage All Contact Emails"
+            values={data.emails}
+            onChange={(v) => setData({ ...data, emails: v })}
             placeholder="Add email address..."
           />
         </div>
@@ -713,7 +710,200 @@ export const ServicesChargesEditor = () => {
   );
 };
 
-// ─── CorporateEditor ──────────────────────────────────────────────────────────
+
+// ─── ServiceChargesEditor ──────────────────────────────────────────────────
+export const ServiceChargesEditor = () => {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({
+    heroTitle: '', heroDescription: '',
+    variableFeeTitle: '', variableFeeDescription: '',
+    noticeTitle: '', noticeDescription: ''
+  });
+
+  useEffect(() => { fetchCharges(); }, []);
+
+  const fetchCharges = async () => {
+    try {
+      const res = await contentApi.getServiceCharges();
+      if (res.data) setData(res.data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  const handleSave = async () => {
+    try { 
+      await contentApi.updateServiceCharges(data); 
+      alert('Service charges updated!'); 
+    } catch { alert('Update failed'); }
+  };
+
+  if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Service Charges...</div>;
+
+  return (
+    <div className="max-w-4xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Service Charges Management</h3>
+          <p className="text-slate-500 font-medium">Edit titles and descriptions for the pricing page</p>
+        </div>
+        <button onClick={handleSave} className="flex items-center space-x-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 font-bold">
+          <Save size={18} /><span>Save Changes</span>
+        </button>
+      </div>
+
+      <SectionEditor title="Hero Banner Section">
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Hero Title</label>
+            <input type="text"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
+              value={data.heroTitle} onChange={(e) => setData({ ...data, heroTitle: e.target.value })} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Hero Description</label>
+            <textarea
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium resize-none"
+              rows={2}
+              value={data.heroDescription} onChange={(e) => setData({ ...data, heroDescription: e.target.value })} />
+          </div>
+        </div>
+      </SectionEditor>
+
+      <SectionEditor title="Variable Fee Section">
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Section Title</label>
+            <input type="text"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
+              value={data.variableFeeTitle} onChange={(e) => setData({ ...data, variableFeeTitle: e.target.value })} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Section Description (Rich Text)</label>
+            <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+              <ReactQuill 
+                theme="snow"
+                modules={quillModules}
+                value={data.variableFeeDescription}
+                onChange={(val) => setData({ ...data, variableFeeDescription: val })}
+              />
+            </div>
+          </div>
+        </div>
+      </SectionEditor>
+
+      <SectionEditor title="Notice Section">
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Section Title</label>
+            <input type="text"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
+              value={data.noticeTitle} onChange={(e) => setData({ ...data, noticeTitle: e.target.value })} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Section Description (Rich Text)</label>
+            <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+              <ReactQuill 
+                theme="snow"
+                modules={quillModules}
+                value={data.noticeDescription}
+                onChange={(val) => setData({ ...data, noticeDescription: val })}
+              />
+            </div>
+          </div>
+        </div>
+      </SectionEditor>
+    </div>
+  );
+};
+
+// ─── NoticeSettingsEditor ──────────────────────────────────────────────────
+export const NoticeSettingsEditor = () => {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({
+    providerTitle: '', providerDescription: '',
+    noteTitle: '', noteDescription: ''
+  });
+
+  useEffect(() => { fetchSettings(); }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await contentApi.getNoticeSettings();
+      if (res.data) setData(res.data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  const handleSave = async () => {
+    try { 
+      await contentApi.updateNoticeSettings(data); 
+      alert('Notice settings updated!'); 
+    } catch { alert('Update failed'); }
+  };
+
+  if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Notice Settings...</div>;
+
+  return (
+    <div className="max-w-4xl space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Project Notice Footer Settings</h3>
+          <p className="text-slate-500 font-medium">Edit the Interested Service Providers and Note section</p>
+        </div>
+        <button onClick={handleSave} className="flex items-center space-x-2 px-6 py-2.5 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-100 font-bold">
+          <Save size={18} /><span>Save Settings</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-8">
+        <SectionEditor title="Interested Service Providers Section">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Section Title</label>
+              <input type="text"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
+                value={data.providerTitle} onChange={(e) => setData({ ...data, providerTitle: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Description (Rich Text)</label>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                <ReactQuill 
+                  theme="snow"
+                  modules={quillModules}
+                  value={data.providerDescription}
+                  onChange={(val) => setData({ ...data, providerDescription: val })}
+                />
+              </div>
+            </div>
+          </div>
+        </SectionEditor>
+
+        <SectionEditor title="Footer Note Section">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Note Label</label>
+              <input type="text"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
+                value={data.noteTitle} onChange={(e) => setData({ ...data, noteTitle: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Note Description (Rich Text)</label>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                <ReactQuill 
+                  theme="snow"
+                  modules={quillModules}
+                  value={data.noteDescription}
+                  onChange={(val) => setData({ ...data, noteDescription: val })}
+                />
+              </div>
+            </div>
+          </div>
+        </SectionEditor>
+      </div>
+    </div>
+  );
+};
+
 export const CorporateEditor = () => {
   const [modal, setModal] = useState({ open: false, type: null, data: {}, isEdit: false });
   const [items, setItems] = useState({ tenders: [], mous: [], notices: [] });
@@ -773,7 +963,7 @@ export const CorporateEditor = () => {
   const getFields = (type) => {
     if (type === 'Notice') return [
       { name: 'title',            label: 'Project Title',              placeholder: 'e.g. Infrastructure Development Plan', required: true },
-      { name: 'description',      label: 'Brief Description',          type: 'textarea', placeholder: 'Summary of the notice...', required: true },
+      { name: 'description',      label: 'Brief Description (Rich Text)',          type: 'quill', placeholder: 'Summary of the notice...', required: true },
       { name: 'projectLocationsHeading', label: 'Location Heading Label', placeholder: 'e.g. Project Locations' },
       { name: 'projectLocations', label: 'Project Locations',          type: 'stringlist', placeholder: 'Add location (e.g. Surat)...' },
       { name: 'targetSectorsHeading',    label: 'Sector Heading Label',   placeholder: 'e.g. Target Sectors' },
