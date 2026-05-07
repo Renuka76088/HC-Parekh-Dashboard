@@ -716,20 +716,19 @@ export const ServicesChargesEditor = () => {
 // ─── CorporateEditor ──────────────────────────────────────────────────────────
 export const CorporateEditor = () => {
   const [modal, setModal] = useState({ open: false, type: null, data: {}, isEdit: false });
-  const [items, setItems] = useState({ tenders: [], mous: [], notices: [], circulars: [] });
+  const [items, setItems] = useState({ tenders: [], mous: [], notices: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     try {
-      const [t, m, n, c] = await Promise.all([
+      const [t, m, n] = await Promise.all([
         corporateApi.getTenders(),
         corporateApi.getMOUs(),
         corporateApi.getNotices(),
-        corporateApi.getCirculars(),
       ]);
-      setItems({ tenders: t.data || [], mous: m.data || [], notices: n.data || [], circulars: c.data || [] });
+      setItems({ tenders: t.data || [], mous: m.data || [], notices: n.data || [] });
     } catch { console.error('Error fetching corporate data'); }
     finally { setLoading(false); }
   };
@@ -741,13 +740,11 @@ export const CorporateEditor = () => {
         if (type === 'Tender') await corporateApi.updateTender(existing._id, formData);
         else if (type === 'MOU') await corporateApi.updateMOU(existing._id, formData);
         else if (type === 'Notice') await corporateApi.updateNotice(existing._id, formData);
-        else if (type === 'Circular') await corporateApi.updateCircular(existing._id, formData);
         alert(`${type} updated!`);
       } else {
         if (type === 'Tender') await corporateApi.addTender(formData);
         else if (type === 'MOU') await corporateApi.addMOU(formData);
         else if (type === 'Notice') await corporateApi.addNotice(formData);
-        else if (type === 'Circular') await corporateApi.addCircular(formData);
         alert(`${type} published!`);
       }
       fetchAll();
@@ -760,7 +757,6 @@ export const CorporateEditor = () => {
       if (type === 'Tender') await corporateApi.deleteTender(id);
       else if (type === 'MOU') await corporateApi.deleteMOU(id);
       else if (type === 'Notice') await corporateApi.deleteNotice(id);
-      else if (type === 'Circular') await corporateApi.deleteCircular(id);
       fetchAll();
     } catch { alert('Delete failed'); }
   };
@@ -785,11 +781,6 @@ export const CorporateEditor = () => {
       { name: 'ourRequirementsHeading',  label: 'Requirements Heading Label', placeholder: 'e.g. Our Requirements' },
       { name: 'ourRequirements',  label: 'Our Requirements',           type: 'stringlist', placeholder: 'Add requirement...' },
     ];
-    if (type === 'Circular') return [
-      { name: 'subject', label: 'Circular Subject', placeholder: 'e.g. Annual General Meeting', required: true },
-      { name: 'pdfUrl', label: 'Upload PDF Document', type: 'file', accept: '.pdf', required: true },
-      { name: 'publishDate', label: 'Date of Published', type: 'text', placeholder: 'e.g. 28 April 2026', required: false },
-    ];
     return [
       { name: 'title',       label: `${type} Title`,    placeholder: `e.g. Official ${type} 2026`, required: true },
       { name: 'description', label: 'Description',      type: 'textarea', placeholder: 'Summary of the document...', required: true },
@@ -801,7 +792,6 @@ export const CorporateEditor = () => {
     notices: { label: 'Project Notices',   Icon: BellRing,    color: 'text-amber-600', bg: 'bg-amber-100', type: 'Notice' },
     tenders: { label: 'Corporate Tenders', Icon: FileCode,    color: 'text-blue-600',  bg: 'bg-blue-100',  type: 'Tender' },
     mous:    { label: 'Corporate MOU',     Icon: ShieldCheck, color: 'text-rose-600',  bg: 'bg-rose-100',  type: 'MOU' },
-    circulars: { label: 'Circulars',       Icon: FileText,    color: 'text-emerald-600', bg: 'bg-emerald-100', type: 'Circular' },
   };
 
   if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Corporate Data...</div>;

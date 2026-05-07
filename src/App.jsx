@@ -35,8 +35,7 @@ import {
 import Login from './components/Login';
 import ProfileSettings from './components/ProfileSettings';
 
-const logo = '/logo.png'; 
-
+const logo = `${import.meta.env.BASE_URL}logo.png`;
 const SidebarItem = ({ icon: Icon, label, to, active, collapsed, onClick }) => (
   <Link 
     to={to} 
@@ -144,8 +143,8 @@ function App() {
               </button>
 
               <div className={`p-6 flex items-center transition-all duration-300 ${isSidebarOpen ? 'space-x-3' : 'justify-center px-0'}`}>
-                <div className={` rounded-xl flex items-center justify-center text-white shadow-lg  transition-all duration-300 ${isSidebarOpen ? 'w-10 h-10' : 'w-12 h-12'}`}>
-                  <span className="font-bold text-xl uppercase"><img src={logo} alt="" /></span>
+                <div className={`rounded-xl flex items-center justify-center bg-white transition-all duration-300 ${isSidebarOpen ? 'w-10 h-10' : 'w-8 h-8'}`}>
+                  <img src={logo} alt="HC Parekh" className="w-full h-full object-contain rounded-lg" />
                 </div>
                 {isSidebarOpen && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -192,6 +191,14 @@ function App() {
                 >
                   <Menu size={24} />
                 </button>
+                <div className={`flex items-center space-x-3 transition-all duration-300 ${!isSidebarOpen ? 'opacity-100' : 'lg:opacity-0 pointer-events-none'}`}>
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 border border-slate-100">
+                    <img src={logo} alt="Logo" className="w-full h-full object-contain" />
+                  </div>
+                  {!isSidebarOpen && (
+                    <span className="font-black text-slate-800 tracking-tight uppercase text-sm hidden sm:block">HC Parekh</span>
+                  )}
+                </div>
                 <div className="hidden md:flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 w-96 group focus-within:ring-2 focus-within:ring-rose-100 focus-within:border-rose-400 transition-all">
                   <Search size={18} className="text-slate-400 mr-2" />
                   <input 
