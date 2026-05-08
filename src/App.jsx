@@ -33,7 +33,8 @@ import {
   CircularEditor,
   WebMarketEditor,
   ServiceChargesEditor,
-  NoticeSettingsEditor
+
+  TeamEditor
 } from './components/PageEditors';
 import Login from './components/Login';
 import ProfileSettings from './components/ProfileSettings';
@@ -100,7 +101,8 @@ function App() {
     { label: 'Hiring', icon: Plus, to: '/hiring' },
     { label: 'Circulars', icon: FileText, to: '/circulars' },
     { label: 'Web Market', icon: Globe, to: '/web-market' },
-    { label: 'Notice Settings', icon: FileText, to: '/notice-settings' },
+
+    { label: 'Our Team', icon: Users, to: '/team' },
     { label: 'Profile', icon: User, to: '/profile' },
   ];
 
@@ -252,7 +254,8 @@ function App() {
                   <Route path="/circulars" element={<CircularEditor />} />
                   <Route path="/web-market" element={<WebMarketEditor />} />
                   <Route path="/service-charges" element={<ServiceChargesEditor />} />
-                  <Route path="/notice-settings" element={<NoticeSettingsEditor />} />
+
+                  <Route path="/team" element={<TeamEditor />} />
                   <Route path="/profile" element={<ProfileSettings />} />
                 </Routes>
               </div>

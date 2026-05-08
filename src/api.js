@@ -88,6 +88,14 @@ export const workforceApi = {
   addVacancy: (data) => api.post('workforce/vacancies', data),
   updateVacancy: (id, data) => api.put(`workforce/vacancies/${id}`, data),
   deleteVacancy: (id) => api.delete(`workforce/vacancies/${id}`),
+  
+  getTeam: () => api.get('workforce/team'),
+  addMember: (data) => api.post('workforce/team', data),
+  updateMember: (id, data) => api.put(`workforce/team/${id}`, data),
+  deleteMember: (id) => api.delete(`workforce/team/${id}`),
+
+  getSettings: () => api.get('workforce/team-settings'),
+  updateSettings: (data) => api.put('workforce/team-settings', data),
 };
 
 export default api;

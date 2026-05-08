@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   MapPin, Briefcase, Settings, Info, Save, Plus, Trash2,
   ChevronRight, GripVertical, Layers, FileCode, ShieldCheck,
-  BellRing, X, Edit, FileText
+  BellRing, X, Edit, FileText, Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -711,6 +711,239 @@ export const ServicesChargesEditor = () => {
 };
 
 
+// ─── TeamEditor ─────────────────────────────────────────────────────────────
+export const TeamEditor = () => {
+  const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState([]);
+  const [settings, setSettings] = useState({
+    heroTitle: '', heroDescription: '',
+    structureTitle: '', structureContent: '',
+    competencies: []
+  });
+  const [modal, setModal] = useState({ open: false, data: {}, isEdit: false });
+
+  useEffect(() => { 
+    fetchData(); 
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [membersRes, settingsRes] = await Promise.all([
+        workforceApi.getTeam(),
+        workforceApi.getSettings()
+      ]);
+      setMembers(membersRes.data || []);
+      if (settingsRes.data) setSettings(settingsRes.data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      await workforceApi.updateSettings(settings);
+      alert('Team page settings updated!');
+    } catch { alert('Update failed'); }
+  };
+
+  const handleCompetencyChange = (index, field, value) => {
+    const newComp = [...settings.competencies];
+    newComp[index] = { ...newComp[index], [field]: value };
+    setSettings({ ...settings, competencies: newComp });
+  };
+
+  const handleSaveMember = async (formData) => {
+    try {
+      const processed = {
+        ...formData,
+        locations: toArr(formData.locations)
+      };
+      
+      if (modal.isEdit) {
+        await workforceApi.updateMember(modal.data._id, processed);
+        alert('Team member updated!');
+      } else {
+        await workforceApi.addMember(processed);
+        alert('Team member added!');
+      }
+      const res = await workforceApi.getTeam();
+      setMembers(res.data || []);
+    } catch { alert('Operation failed'); }
+  };
+
+  const handleDeleteMember = async (id) => {
+    if (!window.confirm('Delete this team member?')) return;
+    try {
+      await workforceApi.deleteMember(id);
+      const res = await workforceApi.getTeam();
+      setMembers(res.data || []);
+    } catch { alert('Delete failed'); }
+  };
+
+  if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Team Data...</div>;
+
+  return (
+    <div className="max-w-6xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Our Team Management</h3>
+          <p className="text-slate-500 font-medium">Manage page content and professional team members</p>
+        </div>
+      </div>
+
+      <SectionEditor title="Hero & Structure Settings">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Hero Title</label>
+              <input type="text"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
+                value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Hero Description</label>
+              <input type="text"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
+                value={settings.heroDescription} onChange={(e) => setSettings({ ...settings, heroDescription: e.target.value })} />
+            </div>
+          </div>
+          
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Structure Title</label>
+            <input type="text"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
+              value={settings.structureTitle} onChange={(e) => setSettings({ ...settings, structureTitle: e.target.value })} />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Structure Content (Rich Text)</label>
+            <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+              <ReactQuill 
+                theme="snow"
+                modules={quillModules}
+                value={settings.structureContent}
+                onChange={(val) => setSettings({ ...settings, structureContent: val })}
+              />
+            </div>
+          </div>
+        </div>
+      </SectionEditor>
+
+      <SectionEditor title="Core Competencies (3 Cards)">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {(settings.competencies || []).map((comp, idx) => (
+              <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Card {idx + 1}</span>
+                  <select 
+                    className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none"
+                    value={comp.iconName}
+                    onChange={(e) => handleCompetencyChange(idx, 'iconName', e.target.value)}
+                  >
+                    {['Briefcase', 'MapPin', 'CheckCircle', 'GraduationCap', 'Users', 'Globe', 'Shield'].map(icon => (
+                      <option key={icon} value={icon}>{icon}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <input 
+                    type="text" 
+                    placeholder="Title"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-rose-100"
+                    value={comp.title}
+                    onChange={(e) => handleCompetencyChange(idx, 'title', e.target.value)}
+                  />
+                  <textarea 
+                    placeholder="Description"
+                    rows={3}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium outline-none focus:ring-2 focus:ring-rose-100 resize-none"
+                    value={comp.description}
+                    onChange={(e) => handleCompetencyChange(idx, 'description', e.target.value)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end border-t border-slate-100 pt-6">
+            <button onClick={handleSaveSettings} className="flex items-center space-x-2 px-8 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 font-bold">
+              <Save size={18} /><span>Update All Settings</span>
+            </button>
+          </div>
+        </div>
+      </SectionEditor>
+
+      <div className="flex items-center justify-between mb-6">
+        <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">Team Members List</h4>
+        <button 
+          onClick={() => setModal({ open: true, data: {}, isEdit: false })}
+          className="flex items-center space-x-2 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-all shadow-sm font-bold text-xs"
+        >
+          <Plus size={14} /><span>Add New Member</span>
+        </button>
+      </div>
+
+      <ItemModal
+        isOpen={modal.open}
+        onClose={() => setModal({ open: false, data: {}, isEdit: false })}
+        title={modal.isEdit ? 'Edit Team Member' : 'Add Team Member'}
+        fields={[
+          { name: 'name', label: 'Full Name', required: true, placeholder: 'e.g. John Doe' },
+          { name: 'designation', label: 'Designation', required: true, placeholder: 'e.g. Senior Consultant' },
+          { name: 'locations', label: 'Locations', type: 'stringlist', placeholder: 'Add a city or location...' },
+        ]}
+        initialData={modal.data}
+        onSave={handleSaveMember}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-20">
+        {members.map((member) => (
+          <div key={member._id} className="bg-white p-4 rounded-xl border border-slate-200 group hover:border-rose-200 transition-all shadow-sm relative">
+            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button 
+                onClick={() => setModal({ open: true, data: member, isEdit: true })}
+                className="w-6 h-6 bg-blue-50 text-blue-600 rounded flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all"
+              >
+                <Edit size={12} />
+              </button>
+              <button 
+                onClick={() => handleDeleteMember(member._id)}
+                className="w-6 h-6 bg-rose-50 text-rose-600 rounded flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+            
+            <h4 className="font-black text-slate-800 text-sm leading-tight mb-1 pr-12">{member.name}</h4>
+            <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mb-2">{member.designation}</p>
+            
+            <div className="flex flex-wrap gap-1">
+              {toArr(member.locations).slice(0, 2).map((loc, i) => (
+                <span key={i} className="px-1.5 py-0.5 bg-slate-50 text-slate-400 text-[8px] font-black uppercase tracking-widest rounded border border-slate-100">
+                  {loc}
+                </span>
+              ))}
+              {toArr(member.locations).length > 2 && (
+                <span className="text-[8px] font-black text-slate-300">+{toArr(member.locations).length - 2} more</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {members.length === 0 && (
+        <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200 mb-20">
+          <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+            <Users size={32} />
+          </div>
+          <h4 className="text-lg font-bold text-slate-800">No team members yet</h4>
+          <p className="text-slate-500 max-w-xs mx-auto mt-2">Start by adding your first team member to display them on the website.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── ServiceChargesEditor ──────────────────────────────────────────────────
 export const ServiceChargesEditor = () => {
   const [loading, setLoading] = useState(true);
@@ -816,111 +1049,40 @@ export const ServiceChargesEditor = () => {
   );
 };
 
-// ─── NoticeSettingsEditor ──────────────────────────────────────────────────
-export const NoticeSettingsEditor = () => {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({
-    providerTitle: '', providerDescription: '',
-    noteTitle: '', noteDescription: ''
-  });
-
-  useEffect(() => { fetchSettings(); }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const res = await contentApi.getNoticeSettings();
-      if (res.data) setData(res.data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
-
-  const handleSave = async () => {
-    try { 
-      await contentApi.updateNoticeSettings(data); 
-      alert('Notice settings updated!'); 
-    } catch { alert('Update failed'); }
-  };
-
-  if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Notice Settings...</div>;
-
-  return (
-    <div className="max-w-4xl space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Project Notice Footer Settings</h3>
-          <p className="text-slate-500 font-medium">Edit the Interested Service Providers and Note section</p>
-        </div>
-        <button onClick={handleSave} className="flex items-center space-x-2 px-6 py-2.5 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-100 font-bold">
-          <Save size={18} /><span>Save Settings</span>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-8">
-        <SectionEditor title="Interested Service Providers Section">
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Section Title</label>
-              <input type="text"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
-                value={data.providerTitle} onChange={(e) => setData({ ...data, providerTitle: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Description (Rich Text)</label>
-              <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                <ReactQuill 
-                  theme="snow"
-                  modules={quillModules}
-                  value={data.providerDescription}
-                  onChange={(val) => setData({ ...data, providerDescription: val })}
-                />
-              </div>
-            </div>
-          </div>
-        </SectionEditor>
-
-        <SectionEditor title="Footer Note Section">
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Note Label</label>
-              <input type="text"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-100 outline-none font-medium"
-                value={data.noteTitle} onChange={(e) => setData({ ...data, noteTitle: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Note Description (Rich Text)</label>
-              <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                <ReactQuill 
-                  theme="snow"
-                  modules={quillModules}
-                  value={data.noteDescription}
-                  onChange={(val) => setData({ ...data, noteDescription: val })}
-                />
-              </div>
-            </div>
-          </div>
-        </SectionEditor>
-      </div>
-    </div>
-  );
-};
-
 export const CorporateEditor = () => {
   const [modal, setModal] = useState({ open: false, type: null, data: {}, isEdit: false });
   const [items, setItems] = useState({ tenders: [], mous: [], notices: [] });
   const [loading, setLoading] = useState(true);
 
+  // Notice Page Settings State
+  const [noticeSettings, setNoticeSettings] = useState({
+    providerTitle: '', providerDescription: '',
+    noteTitle: '', noteDescription: ''
+  });
+  const [showNoticeSettings, setShowNoticeSettings] = useState(false);
+
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     try {
-      const [t, m, n] = await Promise.all([
+      const [t, m, n, s] = await Promise.all([
         corporateApi.getTenders(),
         corporateApi.getMOUs(),
         corporateApi.getNotices(),
+        contentApi.getNoticeSettings(),
       ]);
       setItems({ tenders: t.data || [], mous: m.data || [], notices: n.data || [] });
+      if (s.data) setNoticeSettings(s.data);
     } catch { console.error('Error fetching corporate data'); }
     finally { setLoading(false); }
+  };
+
+  const handleSaveNoticeSettings = async () => {
+    try {
+      await contentApi.updateNoticeSettings(noticeSettings);
+      alert('Notice settings updated!');
+      setShowNoticeSettings(false);
+    } catch { alert('Update failed'); }
   };
 
   const handleSave = async (formData) => {
@@ -1002,7 +1164,59 @@ export const CorporateEditor = () => {
           <h3 className="text-2xl font-black text-slate-800 tracking-tight">Corporate Relations</h3>
           <p className="text-slate-500 font-medium">Manage Tenders, MOUs, and Project Notices</p>
         </div>
+        <button onClick={() => setShowNoticeSettings(!showNoticeSettings)} 
+          className={`flex items-center space-x-2 px-6 py-2.5 rounded-xl transition-all font-bold shadow-lg ${showNoticeSettings ? 'bg-slate-800 text-white shadow-slate-100' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm'}`}>
+          <Settings size={18} /><span>{showNoticeSettings ? 'Close Settings' : 'Page Settings'}</span>
+        </button>
       </div>
+
+      {showNoticeSettings && (
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-10 p-8 bg-rose-50 rounded-[2.5rem] border border-rose-100 space-y-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">Project Notice Page Settings</h4>
+              <p className="text-xs text-rose-600 font-black uppercase tracking-widest mt-1">Footer & Information Sections</p>
+            </div>
+            <button onClick={handleSaveNoticeSettings} className="px-6 py-2 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-all shadow-lg shadow-rose-200">
+              Update Page Content
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-4 bg-white p-6 rounded-3xl border border-rose-100 shadow-sm">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Providers Section Title</label>
+                <input type="text"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-rose-300 outline-none font-bold text-slate-700 transition-all"
+                  value={noticeSettings.providerTitle} onChange={(e) => setNoticeSettings({ ...noticeSettings, providerTitle: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Providers Description (Rich Text)</label>
+                <div className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                  <ReactQuill theme="snow" modules={quillModules} value={noticeSettings.providerDescription}
+                    onChange={(val) => setNoticeSettings({ ...noticeSettings, providerDescription: val })} />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 bg-white p-6 rounded-3xl border border-rose-100 shadow-sm">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Footer Note Title</label>
+                <input type="text"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-rose-300 outline-none font-bold text-slate-700 transition-all"
+                  value={noticeSettings.noteTitle} onChange={(e) => setNoticeSettings({ ...noticeSettings, noteTitle: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Note Content (Rich Text)</label>
+                <div className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                  <ReactQuill theme="snow" modules={quillModules} value={noticeSettings.noteDescription}
+                    onChange={(val) => setNoticeSettings({ ...noticeSettings, noteDescription: val })} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Quick Post Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
